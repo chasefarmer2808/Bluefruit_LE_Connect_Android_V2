@@ -105,6 +105,8 @@ public class NeopixelFragment extends ConnectedPeripheralFragment implements Neo
     private MenuItem mPlayButton;
     private MenuItem mPauseButton;
 
+    private AnimationThread mAnimationThread = new AnimationThread();
+
 
     // region Fragment Lifecycle
     public static NeopixelFragment newInstance(@NonNull String singlePeripheralIdentifier) {
@@ -240,7 +242,11 @@ public class NeopixelFragment extends ConnectedPeripheralFragment implements Neo
     @Override
     public void onDestroy() {
         super.onDestroy();
-
+        try {
+            mAnimationThread.join();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
         stop();
     }
 
@@ -260,10 +266,16 @@ public class NeopixelFragment extends ConnectedPeripheralFragment implements Neo
         switch (item.getItemId()) {
             case R.id.action_playAnimation:
                 mIsPlayingAnimation = true;
+                mAnimationThread.start();
                 showHideAnimationIcons();
                 return true;
             case R.id.action_pauseAnimation:
                 mIsPlayingAnimation = false;
+                try {
+                    mAnimationThread.join();
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
                 showHideAnimationIcons();
                 return true;
             case R.id.action_boardSelector:
@@ -908,6 +920,23 @@ public class NeopixelFragment extends ConnectedPeripheralFragment implements Neo
                 resetScaleAndPanning(mBoard);
             }
             return true;
+        }
+    }
+
+    private class AnimationThread extends Thread {
+        public void run() {
+            while (true) {
+                try {
+                    setPixelColor(Color.RED, 0, (byte)0, (byte)0, null);
+                    Thread.sleep(1000);
+                    setPixelColor(Color.GREEN, 0, (byte)0, (byte)0, null);
+                    Thread.sleep(1000);
+                    setPixelColor(Color.BLUE, 0, (byte)0, (byte)0, null);
+                    Thread.sleep(1000);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            }
         }
     }
 
