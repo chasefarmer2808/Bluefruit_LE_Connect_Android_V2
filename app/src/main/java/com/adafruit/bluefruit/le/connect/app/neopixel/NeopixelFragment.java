@@ -100,6 +100,10 @@ public class NeopixelFragment extends ConnectedPeripheralFragment implements Neo
     private boolean mIsSketchChecked = false;
     private boolean mIsSketchDetected = false;
     private boolean isSketchTooltipAlreadyShown = false;
+    private boolean mIsPlayingAnimation = false;
+
+    private MenuItem mPlayButton;
+    private MenuItem mPauseButton;
 
 
     // region Fragment Lifecycle
@@ -244,6 +248,9 @@ public class NeopixelFragment extends ConnectedPeripheralFragment implements Neo
     public void onCreateOptionsMenu(Menu menu, MenuInflater inflater) {
         super.onCreateOptionsMenu(menu, inflater);
         inflater.inflate(R.menu.menu_neopixel, menu);
+        mPlayButton = menu.findItem(R.id.action_playAnimation);
+        mPauseButton = menu.findItem(R.id.action_pauseAnimation);
+        showHideAnimationIcons();
     }
 
     @Override
@@ -251,6 +258,14 @@ public class NeopixelFragment extends ConnectedPeripheralFragment implements Neo
         FragmentActivity activity = getActivity();
 
         switch (item.getItemId()) {
+            case R.id.action_playAnimation:
+                mIsPlayingAnimation = true;
+                showHideAnimationIcons();
+                return true;
+            case R.id.action_pauseAnimation:
+                mIsPlayingAnimation = false;
+                showHideAnimationIcons();
+                return true;
             case R.id.action_boardSelector:
                 if (activity != null) {
                     FragmentManager fragmentManager = activity.getSupportFragmentManager();
@@ -292,6 +307,17 @@ public class NeopixelFragment extends ConnectedPeripheralFragment implements Neo
         }
     }
     // endregion
+
+    private void showHideAnimationIcons() {
+        if (mIsPlayingAnimation) {
+            mPlayButton.setVisible(false);
+            mPauseButton.setVisible(true);
+        }
+        else {
+            mPlayButton.setVisible(true);
+            mPauseButton.setVisible(false);
+        }
+    }
 
     // region Actions
     private void start() {
