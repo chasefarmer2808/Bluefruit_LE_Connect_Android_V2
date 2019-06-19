@@ -4,15 +4,9 @@
     tools:context="com.adafruit.bluefruit.le.connect.app.ControllerActivity">
 
     <item
-        android:id="@+id/action_playAnimation"
-        android:icon="@drawable/ic_play_arrow_white_24dp"
-        android:title="@string/play_animation"
-        app:showAsAction="always" />
-
-    <item
-        android:id="@+id/action_pauseAnimation"
-        android:icon="@drawable/ic_pause_white_24dp"
-        android:title="@string/pause_animation"
+        android:id="@+id/action_open_animations"
+        android:icon="@drawable/ic_video_library_white_24dp"
+        android:title="@string/animations"
         app:showAsAction="always" />
 
     <item

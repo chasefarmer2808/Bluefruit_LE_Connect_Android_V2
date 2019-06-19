@@ -20,8 +20,6 @@ import android.support.v7.widget.RecyclerView;
 import android.util.Log;
 import android.view.GestureDetector;
 import android.view.LayoutInflater;
-import android.view.Menu;
-import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.MotionEvent;
 import android.view.ScaleGestureDetector;
@@ -100,13 +98,6 @@ public class NeopixelFragment extends ConnectedPeripheralFragment implements Neo
     private boolean mIsSketchChecked = false;
     private boolean mIsSketchDetected = false;
     private boolean isSketchTooltipAlreadyShown = false;
-    private boolean mIsPlayingAnimation = false;
-
-    private MenuItem mPlayButton;
-    private MenuItem mPauseButton;
-
-    private AnimationThread mAnimationThread = new AnimationThread();
-
 
     // region Fragment Lifecycle
     public static NeopixelFragment newInstance(@NonNull String singlePeripheralIdentifier) {
@@ -242,21 +233,7 @@ public class NeopixelFragment extends ConnectedPeripheralFragment implements Neo
     @Override
     public void onDestroy() {
         super.onDestroy();
-        try {
-            mAnimationThread.join();
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
         stop();
-    }
-
-    @Override
-    public void onCreateOptionsMenu(Menu menu, MenuInflater inflater) {
-        super.onCreateOptionsMenu(menu, inflater);
-        inflater.inflate(R.menu.menu_neopixel, menu);
-        mPlayButton = menu.findItem(R.id.action_playAnimation);
-        mPauseButton = menu.findItem(R.id.action_pauseAnimation);
-        showHideAnimationIcons();
     }
 
     @Override
@@ -264,19 +241,15 @@ public class NeopixelFragment extends ConnectedPeripheralFragment implements Neo
         FragmentActivity activity = getActivity();
 
         switch (item.getItemId()) {
-            case R.id.action_playAnimation:
-                mIsPlayingAnimation = true;
-                mAnimationThread.start();
-                showHideAnimationIcons();
-                return true;
-            case R.id.action_pauseAnimation:
-                mIsPlayingAnimation = false;
-                try {
-                    mAnimationThread.join();
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
+            case R.id.action_open_animations:
+                if (activity != null) {
+                    FragmentManager fragmentManager = activity.getSupportFragmentManager();
+                    NeopixelAnimationFragment neopixelAnimationFragment = new NeopixelAnimationFragment();
+                    FragmentTransaction fragmentTransaction = fragmentManager.beginTransaction();
+                    fragmentTransaction.replace(R.id.contentLayout, neopixelAnimationFragment);
+                    fragmentTransaction.addToBackStack(null);
+                    fragmentTransaction.commit();
                 }
-                showHideAnimationIcons();
                 return true;
             case R.id.action_boardSelector:
                 if (activity != null) {
@@ -319,17 +292,6 @@ public class NeopixelFragment extends ConnectedPeripheralFragment implements Neo
         }
     }
     // endregion
-
-    private void showHideAnimationIcons() {
-        if (mIsPlayingAnimation) {
-            mPlayButton.setVisible(false);
-            mPauseButton.setVisible(true);
-        }
-        else {
-            mPlayButton.setVisible(true);
-            mPauseButton.setVisible(false);
-        }
-    }
 
     // region Actions
     private void start() {
@@ -920,23 +882,6 @@ public class NeopixelFragment extends ConnectedPeripheralFragment implements Neo
                 resetScaleAndPanning(mBoard);
             }
             return true;
-        }
-    }
-
-    private class AnimationThread extends Thread {
-        public void run() {
-            while (true) {
-                try {
-                    setPixelColor(Color.RED, 0, (byte)0, (byte)0, null);
-                    Thread.sleep(1000);
-                    setPixelColor(Color.GREEN, 0, (byte)0, (byte)0, null);
-                    Thread.sleep(1000);
-                    setPixelColor(Color.BLUE, 0, (byte)0, (byte)0, null);
-                    Thread.sleep(1000);
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                }
-            }
         }
     }
 
