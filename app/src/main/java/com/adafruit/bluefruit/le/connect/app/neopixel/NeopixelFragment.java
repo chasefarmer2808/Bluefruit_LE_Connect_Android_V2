@@ -20,6 +20,8 @@ import android.support.v7.widget.RecyclerView;
 import android.util.Log;
 import android.view.GestureDetector;
 import android.view.LayoutInflater;
+import android.view.Menu;
+import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.MotionEvent;
 import android.view.ScaleGestureDetector;
@@ -98,6 +100,7 @@ public class NeopixelFragment extends ConnectedPeripheralFragment implements Neo
     private boolean mIsSketchChecked = false;
     private boolean mIsSketchDetected = false;
     private boolean isSketchTooltipAlreadyShown = false;
+
 
     // region Fragment Lifecycle
     public static NeopixelFragment newInstance(@NonNull String singlePeripheralIdentifier) {
@@ -233,7 +236,14 @@ public class NeopixelFragment extends ConnectedPeripheralFragment implements Neo
     @Override
     public void onDestroy() {
         super.onDestroy();
+
         stop();
+    }
+
+    @Override
+    public void onCreateOptionsMenu(Menu menu, MenuInflater inflater) {
+        super.onCreateOptionsMenu(menu, inflater);
+        inflater.inflate(R.menu.menu_neopixel, menu);
     }
 
     @Override
@@ -505,7 +515,6 @@ public class NeopixelFragment extends ConnectedPeripheralFragment implements Neo
         for (int i = 0; i < mBoardContentView.getChildCount(); i++) {
             View ledView = mBoardContentView.getChildAt(i);
             Button ledButton = ledView.findViewById(R.id.ledButton);
-
             int color = mBoardCachedColors.get(i);
             setViewBackgroundColor(ledButton, color);
         }
