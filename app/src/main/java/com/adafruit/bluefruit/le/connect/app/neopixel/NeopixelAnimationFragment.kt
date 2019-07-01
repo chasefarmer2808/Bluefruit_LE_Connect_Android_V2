@@ -12,15 +12,6 @@ import android.widget.ListView
 
 import com.adafruit.bluefruit.le.connect.R
 
-// TODO: Rename parameter arguments, choose names that match
-// the fragment initialization parameters, e.g. ARG_ITEM_NUMBER
-private const val ARG_PARAM1 = "param1"
-private const val ARG_PARAM2 = "param2"
-
-/**
- * A simple [Fragment] subclass.
- *
- */
 class NeopixelAnimationFragment : Fragment() {
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?,
@@ -28,7 +19,7 @@ class NeopixelAnimationFragment : Fragment() {
 
         val rootView: View = inflater.inflate(R.layout.fragment_neopixel_animation, container, false)
 
-        val animListAdapter = ArrayAdapter<String>(activity, R.layout.animation_list_item, arrayOf("test"))
+        val animListAdapter = ArrayAdapter<String>(activity, R.layout.animation_list_item, R.id.animation_item, arrayOf("test"))
         val animList: ListView = rootView.findViewById(R.id.animation_list)
         animList.adapter = animListAdapter
 
