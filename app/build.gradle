@@ -2,6 +2,10 @@ apply plugin: 'com.android.application'
 apply plugin: 'kotlin-android'
 apply plugin: 'kotlin-android-extensions'
 
+repositories {
+    jcenter()
+}
+
 android {
     compileSdkVersion 27
     defaultConfig {
@@ -90,4 +94,6 @@ dependencies {
     //
     testImplementation 'junit:junit:4.12'
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk7:$kotlin_version"
+
+    implementation "org.jetbrains.kotlinx:kotlinx-coroutines-core:1.1.1"
 }
