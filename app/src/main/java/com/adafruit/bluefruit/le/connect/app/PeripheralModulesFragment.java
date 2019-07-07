@@ -1,6 +1,7 @@
 package com.adafruit.bluefruit.le.connect.app;
 
 import android.content.Context;
+import android.content.Intent;
 import android.graphics.drawable.Drawable;
 import android.os.Bundle;
 import android.os.Handler;
@@ -21,6 +22,7 @@ import android.widget.ImageView;
 import android.widget.TextView;
 
 import com.adafruit.bluefruit.le.connect.R;
+import com.adafruit.bluefruit.le.connect.app.neopixel.NeopixelActivity;
 import com.adafruit.bluefruit.le.connect.app.neopixel.NeopixelFragment;
 import com.adafruit.bluefruit.le.connect.ble.central.BlePeripheral;
 import com.adafruit.bluefruit.le.connect.ble.central.BlePeripheralBattery;
@@ -230,9 +232,9 @@ public class PeripheralModulesFragment extends ConnectedPeripheralFragment {
                 break;
 
             case MODULE_NEOPIXEL:
-                if (singlePeripheralIdentifier != null) {
-                    fragment = NeopixelFragment.newInstance(singlePeripheralIdentifier);
-                }
+                Intent i = new Intent(getActivity(), NeopixelActivity.class);
+                i.putExtra("PERIPHERAL_ID", singlePeripheralIdentifier);
+                startActivity(i);
                 break;
 
             case MODULE_CALIBRATION:

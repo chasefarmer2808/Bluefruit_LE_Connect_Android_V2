@@ -62,6 +62,9 @@
 
         <!-- DFU Notification -->
         <activity android:name=".dfu.NotificationActivity" />
+        <activity
+            android:name=".app.neopixel.NeopixelActivity"
+            android:label="Neopixel" />
 
     </application>
 </manifest>
