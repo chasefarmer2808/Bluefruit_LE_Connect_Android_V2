@@ -47,7 +47,6 @@ import com.adafruit.bluefruit.le.connect.utils.TwoDimensionScrollView;
 
 import org.json.JSONArray;
 import org.json.JSONException;
-import org.json.JSONObject;
 
 import java.io.File;
 import java.lang.ref.WeakReference;
@@ -84,8 +83,8 @@ public class NeopixelFragment extends ConnectedPeripheralFragment implements Neo
     private int mCurrentColor = Color.RED;
     private float mColorW = 0;
     private UartPacketManager mUartManager;
-    private Board mBoard;                   // The current connected board. Is null if not connected to a board
-    private Board mLastSelectedBoard;       // Board selected even if it was not connected
+    private NeopixelBoard mBoard;                   // The current connected board. Is null if not connected to a board
+    private NeopixelBoard mLastSelectedBoard;       // Board selected even if it was not connected
     private NeopixelComponents mComponents = new NeopixelComponents(BuildConfig.DEBUG ? NeopixelComponents.kComponents_grbw : NeopixelComponents.kComponents_grb);
     private boolean mIs400HzEnabled = false;
     private BlePeripheralUart mBlePeripheralUart;
@@ -100,6 +99,8 @@ public class NeopixelFragment extends ConnectedPeripheralFragment implements Neo
     private boolean mIsSketchChecked = false;
     private boolean mIsSketchDetected = false;
     private boolean isSketchTooltipAlreadyShown = false;
+
+    private NeopixelActivity mActivity;
 
 
     // region Fragment Lifecycle
@@ -119,6 +120,15 @@ public class NeopixelFragment extends ConnectedPeripheralFragment implements Neo
 
         // Retain this fragment across configuration changes
         setRetainInstance(true);
+
+        mActivity = (NeopixelActivity) getActivity();
+
+        if (mActivity != null) {
+            mBlePeripheralUart = mActivity.mBlePeripheralUart;
+            mUartManager = mActivity.mUartManager;
+            mBoard = mActivity.mNeopixelBoard;
+        }
+
     }
 
     @Override
@@ -224,9 +234,9 @@ public class NeopixelFragment extends ConnectedPeripheralFragment implements Neo
         }
 
         // Setup
-        if (context != null && mUartManager == null) {      // Don't setup if already init (because fragment was recreated)
+        if (context != null) {      // Don't setup if already init (because fragment was recreated)
             // UartManager
-            mUartManager = new UartPacketManager(context, null, false, null);
+//            mUartManager = new UartPacketManager(context, null, false, null);
             start();
         }
 
@@ -319,7 +329,7 @@ public class NeopixelFragment extends ConnectedPeripheralFragment implements Neo
                     mConnectButton.setEnabled(true);
 
                     // Setup
-                    Board board = new Board(context, 0);
+                    NeopixelBoard board = new NeopixelBoard(context, 0);
                     changeComponents(mComponents, mIs400HzEnabled);
                     createBoardUI(board);
                     //restoreCachedBoardColors();
@@ -369,7 +379,7 @@ public class NeopixelFragment extends ConnectedPeripheralFragment implements Neo
         mColorPickerWComponentView.setVisibility(numComponents == 4 ? View.VISIBLE : View.GONE);
     }
 
-    private void changeBoard(@NonNull Board board) {
+    private void changeBoard(@NonNull NeopixelBoard board) {
         createBoardUI(board);
         resetBoard();
         connectNeopixel(board);
@@ -381,7 +391,7 @@ public class NeopixelFragment extends ConnectedPeripheralFragment implements Neo
         }
     }
 
-    private void connectNeopixel(@NonNull Board board) {
+    private void connectNeopixel(@NonNull NeopixelBoard board) {
         mLastSelectedBoard = board;
         updateStatusUI(true);
 
@@ -409,7 +419,7 @@ public class NeopixelFragment extends ConnectedPeripheralFragment implements Neo
         }
 
         if (mBoard != null) {
-            final int boardSize = Math.max(0, mBoard.width * mBoard.height);
+            final int boardSize = Math.max(0, mBoard.getWidth() * mBoard.getHeight());
             mBoardCachedColors = new ArrayList<>(Collections.nCopies(boardSize, mCurrentColor));
             clearBoard(mCurrentColor, mColorW, null);
         }
@@ -520,34 +530,34 @@ public class NeopixelFragment extends ConnectedPeripheralFragment implements Neo
         }
     }*/
 
-    private void createBoardUI(@NonNull Board board) {
+    private void createBoardUI(@NonNull NeopixelBoard board) {
         final ViewGroup canvasView = mBoardContentView;
         canvasView.removeAllViews();
 
         final int kLedSize = (int) MetricsUtils.convertDpToPixel(getContext(), kLedPixelSize);
         final int canvasViewWidth = canvasView.getWidth();
         final int canvasViewHeight = canvasView.getHeight();
-        final int boardWidth = board.width * kLedSize;
-        final int boardHeight = board.height * kLedSize;
+        final int boardWidth = board.getWidth() * kLedSize;
+        final int boardHeight = board.getHeight() * kLedSize;
 
         final int marginLeft = (canvasViewWidth - boardWidth) / 2;
         final int marginTop = (canvasViewHeight - boardHeight) / 2;
 
-        for (int j = 0, k = 0; j < board.height; j++) {
-            for (int i = 0; i < board.width; i++, k++) {
+        for (int j = 0, k = 0; j < board.getHeight(); j++) {
+            for (int i = 0; i < board.getWidth(); i++, k++) {
                 View ledView = LayoutInflater.from(getContext()).inflate(R.layout.layout_neopixel_led, canvasView, false);
                 Button ledButton = ledView.findViewById(R.id.ledButton);
                 ledButton.setOnClickListener(view -> {
                     if (mBoard != null) {
                         int tag = (Integer) view.getTag();
-                        byte x = (byte) (tag % mBoard.width);
-                        byte y = (byte) (tag / mBoard.width);
+                        byte x = (byte) (tag % mBoard.getWidth());
+                        byte y = (byte) (tag / mBoard.getWidth());
                         Log.d(TAG, "led (" + x + "," + y + ")");
 
                         setViewBackgroundColor(view, mCurrentColor);
                         setPixelColor(mCurrentColor, mColorW, x, y, null);
 
-                        mBoardCachedColors.set(y * mBoard.width + x, mCurrentColor);
+                        mBoardCachedColors.set(y * mBoard.getWidth() + x, mCurrentColor);
                     }
                 });
                 RelativeLayout.LayoutParams layoutParams = new RelativeLayout.LayoutParams(kLedSize, kLedSize);
@@ -565,12 +575,12 @@ public class NeopixelFragment extends ConnectedPeripheralFragment implements Neo
         resetScaleAndPanning(board);
     }
 
-    private void resetScaleAndPanning(@NonNull Board board) {
+    private void resetScaleAndPanning(@NonNull NeopixelBoard board) {
         final int kLedSize = (int) MetricsUtils.convertDpToPixel(getContext(), kLedPixelSize);
         final int canvasViewWidth = mBoardContentView.getWidth();
         final int canvasViewHeight = mBoardContentView.getHeight();
-        final int boardWidth = board.width * kLedSize;
-        final int boardHeight = board.height * kLedSize;
+        final int boardWidth = board.getWidth() * kLedSize;
+        final int boardHeight = board.getHeight() * kLedSize;
 
         int panningViewWidth = mCustomPanningView.getWidth();
         mBoardScale = 1f / Math.min(1f, (panningViewWidth / (float) boardWidth) * 0.85f) + 0;
@@ -622,10 +632,9 @@ public class NeopixelFragment extends ConnectedPeripheralFragment implements Neo
         });
     }
 
-    private void setupNeopixel(@NonNull Board device, @NonNull NeopixelComponents components, boolean is400HzEnabled, @Nullable SuccessHandler successHandler) {
+    private void setupNeopixel(@NonNull NeopixelBoard device, @NonNull NeopixelComponents components, boolean is400HzEnabled, @Nullable SuccessHandler successHandler) {
         Log.d(TAG, "Command: Setup");
-
-        final byte[] command = {0x53, device.width, device.height, device.stride, components.getComponentValue(), (byte) (is400HzEnabled ? 1 : 0)};
+        final byte[] command = {0x53, device.getWidth(), device.getHeight(), device.getStride(), components.getComponentValue(), (byte) (is400HzEnabled ? 1 : 0)};
         mUartManager.sendAndWaitReply(mBlePeripheralUart, command, (status, value) -> {
             boolean success = false;
             if (status == BluetoothGatt.GATT_SUCCESS && value != null) {
@@ -817,7 +826,7 @@ public class NeopixelFragment extends ConnectedPeripheralFragment implements Neo
     public void onBoardIndexSelected(int index) {
         Context context = getContext();
         if (context != null) {
-            Board board = new Board(context, index);
+            NeopixelBoard board = new NeopixelBoard(context, index);
             changeBoard(board);
         }
     }
@@ -826,7 +835,7 @@ public class NeopixelFragment extends ConnectedPeripheralFragment implements Neo
     public void onLineStripSelected(int stripLength) {
         Context context = getContext();
         if (context != null) {
-            Board board = new Board("1x" + stripLength, (byte) stripLength, (byte) 1, (byte) stripLength);
+            NeopixelBoard board = new NeopixelBoard("1x" + stripLength, (byte) stripLength, (byte) 1, (byte) stripLength);
             changeBoard(board);
         }
     }
@@ -843,37 +852,37 @@ public class NeopixelFragment extends ConnectedPeripheralFragment implements Neo
 
     // region Board
 
-    static class Board {
-        String name;
-        byte width, height;
-        byte stride;
-
-
-        Board(@NonNull String name, byte width, byte height, byte stride) {
-            this.name = name;
-            this.width = width;
-            this.height = height;
-            this.stride = stride;
-        }
-
-        Board(@NonNull Context context, int standardIndex) {
-
-            String boardsJsonString = FileUtils.readAssetsFile("neopixel" + File.separator + "NeopixelBoards.json", context.getAssets());
-            try {
-                JSONArray boardsArray = new JSONArray(boardsJsonString);
-                JSONObject boardJson = boardsArray.getJSONObject(standardIndex);
-
-                name = boardJson.getString("name");
-                width = (byte) boardJson.getInt("width");
-                height = (byte) boardJson.getInt("height");
-                stride = (byte) boardJson.getInt("stride");
-
-            } catch (JSONException e) {
-                Log.e(TAG, "Invalid board parameters");
-                e.printStackTrace();
-            }
-        }
-    }
+//    static class Board {
+//        String name;
+//        byte width, height;
+//        byte stride;
+//
+//
+//        Board(@NonNull String name, byte width, byte height, byte stride) {
+//            this.name = name;
+//            this.width = width;
+//            this.height = height;
+//            this.stride = stride;
+//        }
+//
+//        Board(@NonNull Context context, int standardIndex) {
+//
+//            String boardsJsonString = FileUtils.readAssetsFile("neopixel" + File.separator + "NeopixelBoards.json", context.getAssets());
+//            try {
+//                JSONArray boardsArray = new JSONArray(boardsJsonString);
+//                JSONObject boardJson = boardsArray.getJSONObject(standardIndex);
+//
+//                name = boardJson.getString("name");
+//                width = (byte) boardJson.getInt("width");
+//                height = (byte) boardJson.getInt("height");
+//                stride = (byte) boardJson.getInt("stride");
+//
+//            } catch (JSONException e) {
+//                Log.e(TAG, "Invalid board parameters");
+//                e.printStackTrace();
+//            }
+//        }
+//    }
 
     // endregion
 

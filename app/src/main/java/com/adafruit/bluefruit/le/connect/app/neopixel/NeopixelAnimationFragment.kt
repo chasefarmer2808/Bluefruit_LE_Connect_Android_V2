@@ -12,7 +12,6 @@ import android.widget.ListView
 import kotlinx.coroutines.launch
 
 import com.adafruit.bluefruit.le.connect.R
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
 
 class NeopixelAnimationFragment : Fragment() {
