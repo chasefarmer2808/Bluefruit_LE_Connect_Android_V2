@@ -13,6 +13,9 @@ import com.adafruit.bluefruit.le.connect.mqtt.MqttSettings;
 import java.nio.charset.Charset;
 
 public class UartPacketManager extends UartPacketManagerBase {
+
+    public static final byte GET_VERSION_COMMAND = 0x56;
+
     // Log
     private final static String TAG = UartPacketManager.class.getSimpleName();
 

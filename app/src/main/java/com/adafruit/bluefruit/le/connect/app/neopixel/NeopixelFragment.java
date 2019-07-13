@@ -318,7 +318,7 @@ public class NeopixelFragment extends ConnectedPeripheralFragment implements Neo
         Log.d(TAG, "Neopixel start");
 
         // Enable Uart
-        mBlePeripheralUart = new BlePeripheralUart(mBlePeripheral);
+//        mBlePeripheralUart = new BlePeripheralUart(mBlePeripheral);
         mBlePeripheralUart.uartEnable(mUartManager, status -> mMainHandler.post(() -> {
             if (status == BluetoothGatt.GATT_SUCCESS) {
                 // Done
