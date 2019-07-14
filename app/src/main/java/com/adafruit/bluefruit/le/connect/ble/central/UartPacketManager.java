@@ -15,6 +15,7 @@ import java.nio.charset.Charset;
 public class UartPacketManager extends UartPacketManagerBase {
 
     public static final byte GET_VERSION_COMMAND = 0x56;
+    public static final byte SETUP_COMMAND = 0x53;
 
     // Log
     private final static String TAG = UartPacketManager.class.getSimpleName();

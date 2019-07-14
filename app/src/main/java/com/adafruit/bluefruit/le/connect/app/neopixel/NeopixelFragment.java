@@ -101,6 +101,7 @@ public class NeopixelFragment extends ConnectedPeripheralFragment implements Neo
     private boolean isSketchTooltipAlreadyShown = false;
 
     private NeopixelActivity mActivity;
+    private NeopixelManager mNeopixelManager;
 
 
     // region Fragment Lifecycle
@@ -124,9 +125,7 @@ public class NeopixelFragment extends ConnectedPeripheralFragment implements Neo
         mActivity = (NeopixelActivity) getActivity();
 
         if (mActivity != null) {
-            mBlePeripheralUart = mActivity.mBlePeripheralUart;
-            mUartManager = mActivity.mUartManager;
-            mBoard = mActivity.mNeopixelBoard;
+            mNeopixelManager = mActivity.mNeopixelManager;
         }
 
     }
@@ -319,7 +318,7 @@ public class NeopixelFragment extends ConnectedPeripheralFragment implements Neo
 
         // Enable Uart
 //        mBlePeripheralUart = new BlePeripheralUart(mBlePeripheral);
-        mBlePeripheralUart.uartEnable(mUartManager, status -> mMainHandler.post(() -> {
+        mNeopixelManager.getBlePeripheralUart().uartEnable(mNeopixelManager.getUartManager(), status -> mMainHandler.post(() -> {
             if (status == BluetoothGatt.GATT_SUCCESS) {
                 // Done
                 Log.d(TAG, "Uart enabled");
@@ -364,7 +363,7 @@ public class NeopixelFragment extends ConnectedPeripheralFragment implements Neo
     }
 
     private boolean isReady() {
-        return mBlePeripheralUart != null && mBlePeripheralUart.isUartEnabled();
+        return mNeopixelManager.getBlePeripheralUart().isUartEnabled();
     }
 
     @SuppressWarnings("BooleanMethodIsAlwaysInverted")
@@ -395,9 +394,16 @@ public class NeopixelFragment extends ConnectedPeripheralFragment implements Neo
         mLastSelectedBoard = board;
         updateStatusUI(true);
 
-        checkNeopixelSketch(isDetected -> {
+//        mNeopixelManager.initNeopixel(success -> {
+//            if (success) {
+//                onClickClear();
+//            }
+//            updateStatusUI(false);
+//        });
+
+        mNeopixelManager.checkNeopixelSketch(isDetected -> {
             if (isDetected) {
-                setupNeopixel(board, mComponents, mIs400HzEnabled, success -> {
+                mNeopixelManager.initNeopixel( success -> {
                     mMainHandler.post(() -> {
                         if (success) {
                             onClickClear();
@@ -429,14 +435,14 @@ public class NeopixelFragment extends ConnectedPeripheralFragment implements Neo
 
     // region UI
     private void updateStatusUI(boolean isWaitingResponse) {
-        mConnectButton.setEnabled(!isWaitingResponse && (!mIsSketchDetected || !mIsSketchChecked) || (isReady() && !isBoardConfigured()));
+        mConnectButton.setEnabled(!isWaitingResponse && (!mNeopixelManager.getSketchChecked()) || (mNeopixelManager.isReady() && !isBoardConfigured()));
 
         mCustomPanningView.setAlpha(mIsSketchDetected ? 1.0f : 0.2f);
 
         int statusMessageId;
-        if (!isReady()) {
+        if (!mNeopixelManager.isReady()) {
             statusMessageId = R.string.neopixels_waitingforuart;
-        } else if (!mIsSketchChecked) {
+        } else if (!mNeopixelManager.getSketchChecked()) {
             statusMessageId = R.string.neopixels_status_readytoconnect;
         } else {
             if (mIsSketchDetected) {
@@ -729,7 +735,7 @@ public class NeopixelFragment extends ConnectedPeripheralFragment implements Neo
             }
         }
 
-        mUartManager.sendAndWaitReply(mBlePeripheralUart, command, (status, value) -> {
+        mNeopixelManager.getUartManager().sendAndWaitReply(mNeopixelManager.getBlePeripheralUart(), command, (status, value) -> {
             boolean success = false;
             if (status == BluetoothGatt.GATT_SUCCESS) {
                 if (value != null) {
