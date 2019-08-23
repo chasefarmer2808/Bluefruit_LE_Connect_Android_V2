@@ -146,7 +146,7 @@ public class NeopixelFragment extends ConnectedPeripheralFragment implements Neo
         // UI
         mStatusTextView = view.findViewById(R.id.statusTextView);
         mColorPickerWComponentView = view.findViewById(R.id.colorPickerWComponentView);
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {                  
             mColorPickerWComponentView.setElevation(1000);          // Is a view that should appear above the button. Take into account that buttons have elevation from API21
         }
         mConnectButton = view.findViewById(R.id.connectButton);
