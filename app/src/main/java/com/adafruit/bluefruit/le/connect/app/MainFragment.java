@@ -1,18 +1,18 @@
 package com.adafruit.bluefruit.le.connect.app;
 
 import android.app.AlertDialog;
-import android.arch.lifecycle.ViewModelProviders;
 import android.content.Context;
 import android.os.Bundle;
-import android.support.annotation.NonNull;
-import android.support.annotation.Nullable;
-import android.support.design.widget.BottomNavigationView;
-import android.support.v4.app.Fragment;
-import android.support.v4.app.FragmentActivity;
-import android.support.v4.app.FragmentManager;
-import android.support.v4.app.FragmentTransaction;
-import android.support.v7.app.ActionBar;
-import android.support.v7.app.AppCompatActivity;
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+import androidx.appcompat.app.ActionBar;
+import androidx.appcompat.app.AppCompatActivity;
+import androidx.fragment.app.Fragment;
+import androidx.fragment.app.FragmentActivity;
+import androidx.fragment.app.FragmentManager;
+import androidx.fragment.app.FragmentTransaction;
+import androidx.lifecycle.ViewModelProviders;
+
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.MenuItem;
@@ -22,6 +22,7 @@ import android.view.ViewGroup;
 import com.adafruit.bluefruit.le.connect.R;
 import com.adafruit.bluefruit.le.connect.models.PeripheralModeViewModel;
 import com.adafruit.bluefruit.le.connect.utils.DialogUtils;
+import com.google.android.material.bottomnavigation.BottomNavigationView;
 
 import java.lang.ref.WeakReference;
 
@@ -30,13 +31,13 @@ public class MainFragment extends Fragment {
     private final static String TAG = MainFragment.class.getSimpleName();
 
     // UI
-    private BottomNavigationView mNavigationView;
+    //private BottomNavigationView mNavigationView;
 
     // Data
     private WeakReference<Fragment> mCurrentFragmentReference;
     private int selectedFragmentId = 0;
-    private PeripheralModeViewModel mPeripheralModeViewModel;
-    private boolean mIsInitialNavigationItemSelected = false;
+    //private PeripheralModeViewModel mPeripheralModeViewModel;
+    //private boolean mIsInitialNavigationItemSelected = false;
 
     // region Fragment Lifecycle
     public MainFragment() {
@@ -65,10 +66,14 @@ public class MainFragment extends Fragment {
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
 
+        /*
         // Setup bottom navigation view
         mNavigationView = view.findViewById(R.id.navigation);
         mNavigationView.setOnNavigationItemSelectedListener(this::selectFragment);
         updateActionBarTitle(mNavigationView.getSelectedItemId());       // Restore title (i.e. when a fragment is popped)
+        */
+
+        selectFragment(R.id.navigation_central);
     }
 
     @Override
@@ -78,18 +83,24 @@ public class MainFragment extends Fragment {
         FragmentActivity activity = getActivity();
         if (activity != null) {
             // ViewModels
-            mPeripheralModeViewModel = ViewModelProviders.of(activity).get(PeripheralModeViewModel.class);   // Note: shares viewModel with Activity
+            //mPeripheralModeViewModel = ViewModelProviders.of(activity).get(PeripheralModeViewModel.class);   // Note: shares viewModel with Activity
 
             // update options menu with current values
             activity.invalidateOptionsMenu();
 
+            /*
             // Setup when activity is created for the first time
             if (!mIsInitialNavigationItemSelected) {
                 // Set initial value
                 mNavigationView.setSelectedItemId(R.id.navigation_central);
                 mIsInitialNavigationItemSelected = true;
-            }
+            }*/
         }
+    }
+
+    @Override
+    public void onDestroy() {
+        super.onDestroy();
     }
 
     // endregion
@@ -99,9 +110,14 @@ public class MainFragment extends Fragment {
         return mCurrentFragmentReference == null ? null : mCurrentFragmentReference.get();
     }
 
+    /*
     private boolean selectFragment(@NonNull MenuItem item) {
-
         final int navigationSelectedItem = item.getItemId();
+        return selectFragment(navigationSelectedItem);
+    }*/
+
+
+    private boolean selectFragment(int navigationSelectedItem) {
 
         // Check errors
         if (navigationSelectedItem == R.id.navigation_peripheral) {
@@ -159,12 +175,13 @@ public class MainFragment extends Fragment {
             }
         }
 
+        /*
         Context context = getContext();
         if (context != null) {
             // Start or stop advertising when the selected fragment is navigation_peripheral
             if (navigationSelectedItem == R.id.navigation_peripheral) {
                 Log.d(TAG, "Start Advertising");
-                final boolean result = mPeripheralModeViewModel.start(context);
+                final boolean result = mPeripheralModeViewModel.start(context.getApplicationContext());
                 if (!result) {
                     AlertDialog.Builder builder = new AlertDialog.Builder(getContext());
                     AlertDialog dialog = builder.setTitle(R.string.dialog_error).setMessage(R.string.bluetooth_advertising_start_error)
@@ -174,9 +191,9 @@ public class MainFragment extends Fragment {
                 }
             } else {
                 Log.d(TAG, "Stop Advertising");
-                mPeripheralModeViewModel.stop(context);
+                mPeripheralModeViewModel.stop(context.getApplicationContext());
             }
-        }
+        }*/
 
         return isFragmentChanged;
     }
@@ -185,7 +202,7 @@ public class MainFragment extends Fragment {
         int titleId = 0;
         switch (navigationSelectedItem) {
             case R.id.navigation_central:
-                titleId = R.string.main_tabbar_centralmode;
+                titleId = R.string.main_tabbar_singlemode;//R.string.main_tabbar_centralmode;
                 break;
             case R.id.navigation_peripheral:
                 titleId = R.string.main_tabbar_peripheralmode;
@@ -208,14 +225,14 @@ public class MainFragment extends Fragment {
     // endregion
 
     // region Actions
-    public void startScanning() {
+    void startScanning() {
         // Send the message to the peripheral mode fragment, or ignore it if is not selected
         if (getCurrentFragment() instanceof ScannerFragment) {
             ((ScannerFragment) getCurrentFragment()).startScanning();
         }
     }
 
-    public void disconnectAllPeripherals() {
+    void disconnectAllPeripherals() {
         // Send the message to the peripheral mode fragment, or ignore it if is not selected
         if (getCurrentFragment() instanceof ScannerFragment) {
             ((ScannerFragment) getCurrentFragment()).disconnectAllPeripherals();

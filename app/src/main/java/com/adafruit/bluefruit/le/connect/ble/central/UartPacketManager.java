@@ -1,8 +1,10 @@
 package com.adafruit.bluefruit.le.connect.ble.central;
 
 import android.content.Context;
-import android.support.annotation.NonNull;
-import android.support.annotation.Nullable;
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+
+import android.os.Handler;
 import android.util.Log;
 
 import com.adafruit.bluefruit.le.connect.ble.UartPacket;
@@ -44,7 +46,6 @@ public class UartPacketManager extends UartPacketManagerBase {
         uartPeripheral.uartSendAndWaitReply(data, writeCompletionHandler, readTimeout, readCompletionHandler);
     }
 
-
     public void send(@NonNull BlePeripheralUart uartPeripheral, @NonNull String text) {
         send(uartPeripheral, text, false);
     }
@@ -84,6 +85,15 @@ public class UartPacketManager extends UartPacketManagerBase {
         if (shouldBeSent) {
             send(uartPeripheral, data, null);
         }
+    }
+
+    public void sendEachPacketSequentially(@NonNull BlePeripheralUart uartPeripheral, @NonNull byte[] data, int withResponseEveryPacketCount, BlePeripheral.ProgressHandler progressHandler, BlePeripheral.CompletionHandler completionHandler) {
+        mSentBytes += data.length;
+        uartPeripheral.sendEachPacketSequentially(data, withResponseEveryPacketCount, progressHandler, completionHandler);
+    }
+
+    public void cancelOngoingSendPacketSequentiallyInThread(@NonNull BlePeripheralUart uartPeripheral) {
+        uartPeripheral.cancelOngoingSendPacketSequentiallyInThread();
     }
 
     // endregion

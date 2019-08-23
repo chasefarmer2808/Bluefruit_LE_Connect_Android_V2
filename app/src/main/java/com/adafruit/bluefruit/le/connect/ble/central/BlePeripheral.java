@@ -10,11 +10,13 @@ import android.bluetooth.BluetoothProfile;
 import android.content.Context;
 import android.content.Intent;
 import android.os.Build;
-import android.support.annotation.MainThread;
-import android.support.annotation.NonNull;
-import android.support.annotation.Nullable;
-import android.support.v4.content.LocalBroadcastManager;
 import android.util.Log;
+
+import androidx.annotation.IntRange;
+import androidx.annotation.MainThread;
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 
 import com.adafruit.bluefruit.le.connect.BuildConfig;
 import com.adafruit.bluefruit.le.connect.ble.BleUtils;
@@ -31,7 +33,7 @@ import java.util.UUID;
 import no.nordicsemi.android.support.v18.scanner.ScanRecord;
 import no.nordicsemi.android.support.v18.scanner.ScanResult;
 
-@SuppressWarnings({"ConstantConditions", "PointlessBooleanExpression"})
+@SuppressWarnings({"ConstantConditions", "PointlessBooleanExpression", "WeakerAccess", "unused"})
 public class BlePeripheral {
     // Log
     private final static String TAG = BlePeripheral.class.getSimpleName();
@@ -46,6 +48,9 @@ public class BlePeripheral {
     private final static boolean kDebugCommands = BuildConfig.DEBUG && true;         // Set a identifier for each command and verifies that the command processed is the one expected
     private final static boolean kProfileTimeouts = BuildConfig.DEBUG && true;
     private final static String kPrefix = "com.adafruit.bluefruit.bleperipheral.";
+
+    private static final int kDefaultMtuSize = 20;
+
     public final static String kBlePeripheral_OnConnecting = kPrefix + "connecting";
     public final static String kBlePeripheral_OnConnected = kPrefix + "connected";
     public final static String kBlePeripheral_OnDisconnected = kPrefix + "disconnected";
@@ -55,8 +60,7 @@ public class BlePeripheral {
 
     public static UUID kClientCharacteristicConfigUUID = UUID.fromString("00002902-0000-1000-8000-00805f9b34fb");
 
-    private final static boolean kForceWriteWithResponse = false;                    // Possible Android bug?: writing without response still calls onCharacteristicWrite
-    private final static boolean kForceWriteWithoutResponse = true;                  // Force without response, or take into account that write response (onCharacteristicWrite) could be reported AFTER onCharacteristicChanged on expecting a response
+    private final static boolean kForceWriteWithoutResponse = false;//true;                  // Force without response, or take into account that write response (onCharacteristicWrite) could be reported AFTER onCharacteristicChanged on expecting a response
     private static boolean kHackToAvoidProblemsWhenWriteIsReceivedBeforeChangedOnWriteWithResponse = true;   // On Android when writing on a characteristic with writetype WRITE_TYPE_DEFAULT, onCharacteristicChanged (when a response is expected) can be called before onCharacteristicWrite. This weird behaviour has to be taken into account!!
 
     // Data
@@ -70,7 +74,7 @@ public class BlePeripheral {
     private List<CaptureReadHandler> mCaptureReadHandlers = new ArrayList<>();
 
     private int mRssi = 0;
-
+    private int mMtuSize = kDefaultMtuSize;
 
     // region BluetoothGattCallback
     private BluetoothGattCallback mGattCallback = new BluetoothGattCallback() {
@@ -92,6 +96,7 @@ public class BlePeripheral {
 
             if (newState == BluetoothProfile.STATE_CONNECTED) {
                 mConnectionState = STATE_CONNECTED;
+
                 localBroadcastUpdate(kBlePeripheral_OnConnected, getIdentifier());
             } else if (newState == BluetoothProfile.STATE_DISCONNECTED) {
                 Log.d(TAG, "onConnectionStateChange STATE_DISCONNECTED");
@@ -135,7 +140,7 @@ public class BlePeripheral {
                 if (kHackToAvoidProblemsWhenWriteIsReceivedBeforeChangedOnWriteWithResponse) {
                     Log.d(TAG, "onCharacteristicWrite. Ignored");
                     // TODO: fixit
-                    // This is not totally correct. If onCharacteristicChanged arrives before onCharacteristicWrite, onCharacteristicChanged should not finishExecutingCommand and wait should be executed when this funtion is called
+                    // This is not totally correct. If onCharacteristicChanged arrives before onCharacteristicWrite, onCharacteristicChanged should not finishExecutingCommand and wait should be executed when this function is called
                 } else {
                     Log.d(TAG, "onCharacteristicWrite. Waiting for reponse");
                     final String identifier = getCharacteristicIdentifier(characteristic);
@@ -148,7 +153,14 @@ public class BlePeripheral {
                     Log.d(TAG, "onCharacteristicWrite: add captureReadHandler");
                     mCaptureReadHandlers.add(captureReadHandler);
                 }
-            } else {
+            }
+            /*
+            else if (command != null && command.mType == BleCommand.BLECOMMANDTYPE_WRITECHARACTERISTIC && characteristic.getWriteType() == BluetoothGattCharacteristic.WRITE_TYPE_NO_RESPONSE) {
+                // Note on Android bluetooth stack: https://stackoverflow.com/questions/43741849/oncharacteristicwrite-and-onnotificationsent-are-being-called-too-fast-how-to/43744888
+                // TODO: use this instead of simulating a response for WRITE_TYPE_NO_RESPONSE
+                Log.w(TAG, "onCharacteristicWrite received for WRITE_TYPE_NO_RESPONSE");
+            }*/
+            else {
                 Log.d(TAG, "onCharacteristicWrite. Finished");
                 finishExecutingCommand(status);
             }
@@ -264,6 +276,15 @@ public class BlePeripheral {
         @Override
         public void onMtuChanged(BluetoothGatt gatt, int mtu, int status) {
             super.onMtuChanged(gatt, mtu, status);
+            if (status == BluetoothGatt.GATT_SUCCESS) {
+                mMtuSize = mtu;
+                Log.d(TAG, "Mtu changed: " + mtu);
+            }
+            else {
+                Log.d(TAG, "Error changing mtu to: " + mtu + " status: " + status);
+
+            }
+            finishExecutingCommand(status);
         }
     };
 
@@ -273,6 +294,14 @@ public class BlePeripheral {
     }
 
     // Properties
+    public int getMtuSize() {
+        return mMtuSize;
+    }
+
+    int getMaxPacketLength() {
+        return getMtuSize() - 3;        // 3 bytes are used for internal purposes so the maximum size is MTU-3
+    }
+
     public int getLastRssi() {
         return mRssi;
     }
@@ -398,7 +427,7 @@ public class BlePeripheral {
             mBluetoothGatt = device.connectGatt(context, false, mGattCallback);
         }
 
-        if (mBluetoothGatt == null) {
+         if (mBluetoothGatt == null) {
             Log.e(TAG, "connectGatt Error. Returns null");
         }
     }
@@ -672,8 +701,6 @@ public class BlePeripheral {
                     int selectedWriteType;
                     if (kForceWriteWithoutResponse) {
                         selectedWriteType = BluetoothGattCharacteristic.WRITE_TYPE_NO_RESPONSE;
-                    } else if (kForceWriteWithResponse) {
-                        selectedWriteType = BluetoothGattCharacteristic.WRITE_TYPE_DEFAULT;
                     } else {
                         selectedWriteType = writeType;
                     }
@@ -684,9 +711,11 @@ public class BlePeripheral {
                     if (success) {
 
                         // Simulate response if needed
+                        // Android: no need to simulate response: https://stackoverflow.com/questions/43741849/oncharacteristicwrite-and-onnotificationsent-are-being-called-too-fast-how-to/43744888
+                        /*
                         if (selectedWriteType == BluetoothGattCharacteristic.WRITE_TYPE_NO_RESPONSE) {
                             finishExecutingCommand(BluetoothGatt.GATT_SUCCESS);
-                        }
+                        }*/
                     } else {
                         Log.w(TAG, "writeCharacteristic could not be initiated");
                         finishExecutingCommand(BluetoothGatt.GATT_FAILURE);
@@ -711,7 +740,7 @@ public class BlePeripheral {
                 if (mBluetoothGatt != null) {
                     Log.d(TAG, "writeCharacteristicAndCaptureNotify");
                     // Write value
-                    characteristic.setWriteType(kForceWriteWithResponse ? BluetoothGattCharacteristic.WRITE_TYPE_DEFAULT : writeType);
+                    characteristic.setWriteType(writeType);
                     characteristic.setValue(data);
                     final boolean success = mBluetoothGatt.writeCharacteristic(characteristic);
                     if (success) {
@@ -773,8 +802,31 @@ public class BlePeripheral {
         mCommmandQueue.add(command);
     }
 
+    public void requestMtu(@IntRange(from = 23, to = 517) int mtuSize, CompletionHandler completionHandler) {
+        final String identifier = null;
+        BleCommand command = new BleCommand(BleCommand.BLECOMMANDTYPE_REQUESTMTU, identifier, completionHandler) {
+            @Override
+            public void execute() {
+                // Request mtu size change
+                if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.N) {
+                    Log.d(TAG, "Request mtu change");
+                    mBluetoothGatt.requestMtu(mtuSize);
+                }
+                else {
+                    Log.w(TAG, "change mtu size not recommened on Android < 7.0");      // https://issuetracker.google.com/issues/37101017
+                    finishExecutingCommand(BluetoothGatt.GATT_REQUEST_NOT_SUPPORTED);
+                }
+            }
+        };
+        mCommmandQueue.add(command);
+    }
+
     public interface CompletionHandler {
         void completion(int status);
+    }
+
+    public interface ProgressHandler {
+        void progress(float progress);
     }
 
     public interface NotifyHandler {
@@ -886,6 +938,7 @@ public class BlePeripheral {
         static final int BLECOMMANDTYPE_WRITECHARACTERISTIC = 4;
         static final int BLECOMMANDTYPE_WRITECHARACTERISTICANDWAITNOTIFY = 5;
         static final int BLECOMMANDTYPE_READDESCRIPTOR = 6;
+        static final int BLECOMMANDTYPE_REQUESTMTU = 7;
 
         // Data
         private int mType;
@@ -906,6 +959,7 @@ public class BlePeripheral {
             mExtra = extra;
         }
 
+        @SuppressWarnings("BooleanMethodIsAlwaysInverted")
         boolean isCancelled() {
             return mIsCancelled;
         }
@@ -969,6 +1023,7 @@ public class BlePeripheral {
             }
         }
 
+        @SuppressWarnings("SameParameterValue")
         boolean containsCommandType(int type) {
             synchronized (mQueue) {
                 int i = 0;

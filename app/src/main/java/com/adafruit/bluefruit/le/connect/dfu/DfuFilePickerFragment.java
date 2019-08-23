@@ -9,9 +9,10 @@ import android.database.Cursor;
 import android.net.Uri;
 import android.os.Bundle;
 import android.provider.OpenableColumns;
-import android.support.annotation.NonNull;
-import android.support.annotation.Nullable;
-import android.support.v7.app.AppCompatDialogFragment;
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+import androidx.appcompat.app.AppCompatDialogFragment;
+
 import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.Button;
@@ -119,7 +120,7 @@ public class DfuFilePickerFragment extends AppCompatDialogFragment {
         } else if (getTargetFragment() instanceof OnFragmentInteractionListener) {
             mListener = (OnFragmentInteractionListener) getTargetFragment();
         } else {
-            throw new RuntimeException(context.toString() + " must implement OnFragmentInteractionListener");
+            throw new RuntimeException(context.toString() + " must implement OnImageCropListener");
         }
     }
 
