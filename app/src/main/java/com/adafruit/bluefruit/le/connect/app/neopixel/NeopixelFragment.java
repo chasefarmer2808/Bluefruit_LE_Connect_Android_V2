@@ -404,14 +404,16 @@ public class NeopixelFragment extends ConnectedPeripheralFragment implements Neo
 
         mNeopixelManager.checkNeopixelSketch(isDetected -> {
             if (isDetected) {
-                mNeopixelManager.initNeopixel( success -> {
-                    mMainHandler.post(() -> {
-                        if (success) {
-                            onClickClear();
-                        }
-                        updateStatusUI(false);
-                    });
-                });
+                mIsSketchChecked = true;
+                mIsSketchDetected = true;
+                mNeopixelManager.initNeopixel( success -> mMainHandler.post(() -> {
+                    if (success) {
+                        mBoard = mNeopixelManager.getNeopixelBoard();
+                        mIs400HzEnabled = mNeopixelManager.getM400HzEnabled();
+                        onClickClear();
+                    }
+                    updateStatusUI(false);
+                }));
             } else {
                 mMainHandler.post(() -> updateStatusUI(false));
             }
@@ -555,17 +557,15 @@ public class NeopixelFragment extends ConnectedPeripheralFragment implements Neo
                 View ledView = LayoutInflater.from(getContext()).inflate(R.layout.layout_neopixel_led, canvasView, false);
                 Button ledButton = ledView.findViewById(R.id.ledButton);
                 ledButton.setOnClickListener(view -> {
-                    if (mBoard != null) {
-                        int tag = (Integer) view.getTag();
-                        byte x = (byte) (tag % mBoard.getWidth());
-                        byte y = (byte) (tag / mBoard.getWidth());
-                        Log.d(TAG, "led (" + x + "," + y + ")");
+                    int tag = (Integer) view.getTag();
+                    byte x = (byte) (tag % mBoard.getWidth());
+                    byte y = (byte) (tag / mBoard.getWidth());
+                    Log.d(TAG, "led (" + x + "," + y + ")");
 
-                        setViewBackgroundColor(view, mCurrentColor);
-                        setPixelColor(mCurrentColor, mColorW, x, y, null);
+                    setViewBackgroundColor(view, mCurrentColor);
+                    setPixelColor(mCurrentColor, mColorW, x, y, null);
 
-                        mBoardCachedColors.set(y * mBoard.getWidth() + x, mCurrentColor);
-                    }
+                    mBoardCachedColors.set(y * mBoard.getWidth() + x, mCurrentColor);
                 });
                 RelativeLayout.LayoutParams layoutParams = new RelativeLayout.LayoutParams(kLedSize, kLedSize);
                 layoutParams.leftMargin = i * kLedSize + marginLeft;

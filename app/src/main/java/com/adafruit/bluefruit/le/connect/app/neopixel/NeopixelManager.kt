@@ -6,7 +6,6 @@ import com.adafruit.bluefruit.le.connect.BuildConfig
 import com.adafruit.bluefruit.le.connect.app.ConnectedPeripheralFragment.SuccessHandler
 import com.adafruit.bluefruit.le.connect.ble.BleUtils
 import com.adafruit.bluefruit.le.connect.ble.central.BlePeripheral
-import com.adafruit.bluefruit.le.connect.ble.central.BlePeripheral.CompletionHandler
 import com.adafruit.bluefruit.le.connect.ble.central.BlePeripheralUart
 import com.adafruit.bluefruit.le.connect.ble.central.BleScanner
 import com.adafruit.bluefruit.le.connect.ble.central.UartPacketManager
@@ -21,15 +20,14 @@ class NeopixelManager(val mContext: Context, peripheralId: String) {
     val uartManager: UartPacketManager = UartPacketManager(mContext, null, false, null)
     var blePeripheral: BlePeripheral? = null
     val blePeripheralUart: BlePeripheralUart
-
-    private val mNeopixelComponents = NeopixelComponents(if (BuildConfig.DEBUG) NeopixelComponents.kComponents_grbw else NeopixelComponents.kComponents_grb)
-    private val m400HzEnabled = false
-    private var mNeopixelBoard: NeopixelBoard
+    var neopixelBoard: NeopixelBoard
+    val m400HzEnabled = false
+    private val neopixelComponents = NeopixelComponents(if (BuildConfig.DEBUG) NeopixelComponents.kComponents_grbw else NeopixelComponents.kComponents_grb)
 
     init {
         blePeripheral = BleScanner.getInstance().getPeripheralWithIdentifier(peripheralId)
         blePeripheralUart = BlePeripheralUart(blePeripheral!!)
-        mNeopixelBoard = NeopixelBoard(mContext, 0)
+        neopixelBoard = NeopixelBoard(mContext, 0)
     }
 
     fun initNeopixel(successHandler: SuccessHandler) {
@@ -40,10 +38,10 @@ class NeopixelManager(val mContext: Context, peripheralId: String) {
 
         val command = byteArrayOf(
                 SETUP_COMMAND,
-                mNeopixelBoard.width,
-                mNeopixelBoard.height,
-                mNeopixelBoard.stride,
-                mNeopixelComponents.componentValue,
+                neopixelBoard.width,
+                neopixelBoard.height,
+                neopixelBoard.stride,
+                neopixelComponents.componentValue,
                 enabledByte)
 
         uartManager.sendAndWaitReply(blePeripheralUart, command) { status, value ->

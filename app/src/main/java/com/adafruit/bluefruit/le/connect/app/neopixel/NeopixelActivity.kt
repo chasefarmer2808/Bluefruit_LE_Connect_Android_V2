@@ -1,13 +1,9 @@
 package com.adafruit.bluefruit.le.connect.app.neopixel
 
 import android.os.Bundle
-import android.support.v4.app.FragmentTransaction
-import android.support.v7.app.AppCompatActivity
+import androidx.appcompat.app.AppCompatActivity
+import androidx.fragment.app.FragmentTransaction
 import com.adafruit.bluefruit.le.connect.R
-import com.adafruit.bluefruit.le.connect.ble.central.BlePeripheral
-import com.adafruit.bluefruit.le.connect.ble.central.BlePeripheralUart
-import com.adafruit.bluefruit.le.connect.ble.central.BleScanner
-import com.adafruit.bluefruit.le.connect.ble.central.UartPacketManager
 
 class NeopixelActivity : AppCompatActivity() {
     lateinit var mNeopixelManager: NeopixelManager
