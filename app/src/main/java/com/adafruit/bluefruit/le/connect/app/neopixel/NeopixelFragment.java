@@ -235,8 +235,6 @@ public class NeopixelFragment extends ConnectedPeripheralFragment implements Neo
 
         // Setup
         if (context != null) {      // Don't setup if already init (because fragment was recreated)
-            // UartManager
-//            mUartManager = new UartPacketManager(context, null, false, null);
             start();
         }
 
@@ -317,8 +315,6 @@ public class NeopixelFragment extends ConnectedPeripheralFragment implements Neo
     private void start() {
         Log.d(TAG, "Neopixel start");
 
-        // Enable Uart
-//        mBlePeripheralUart = new BlePeripheralUart(mBlePeripheral);
         mNeopixelManager.getBlePeripheralUart().uartEnable(mNeopixelManager.getUartManager(), status -> mMainHandler.post(() -> {
             if (status == BluetoothGatt.GATT_SUCCESS) {
                 // Done
@@ -356,10 +352,6 @@ public class NeopixelFragment extends ConnectedPeripheralFragment implements Neo
     private void stop() {
         Log.d(TAG, "Neopixel stop");
         mBlePeripheral.reset();
-        /*
-        if (mBlePeripheralUart != null) {
-            mBlePeripheralUart.uartDisable();
-        }*/
         mBlePeripheralUart = null;
     }
 
@@ -395,13 +387,6 @@ public class NeopixelFragment extends ConnectedPeripheralFragment implements Neo
         mLastSelectedBoard = board;
         updateStatusUI(true);
 
-//        mNeopixelManager.initNeopixel(success -> {
-//            if (success) {
-//                onClickClear();
-//            }
-//            updateStatusUI(false);
-//        });
-
         mNeopixelManager.checkNeopixelSketch(isDetected -> {
             if (isDetected) {
                 mIsSketchChecked = true;
@@ -430,7 +415,7 @@ public class NeopixelFragment extends ConnectedPeripheralFragment implements Neo
         if (mBoard != null) {
             final int boardSize = Math.max(0, mBoard.getWidth() * mBoard.getHeight());
             mBoardCachedColors = new ArrayList<>(Collections.nCopies(boardSize, mCurrentColor));
-            clearBoard(mCurrentColor, mColorW, null);
+            mNeopixelManager.setAllPixelColor(mCurrentColor, mColorW, null);
         }
     }
 
@@ -604,129 +589,9 @@ public class NeopixelFragment extends ConnectedPeripheralFragment implements Neo
 
     // endregion
 
-    // region Neopixel Commands
-
-    private void checkNeopixelSketch(SuccessHandler successHandler) {
-        // Send version command and check if returns a valid response
-        Log.d(TAG, "Command: get Version");
-
-        final byte[] command = {0x56};
-
-        // Reset status
-        mIsSketchChecked = false;
-        mIsSketchDetected = false;
-
-        mUartManager.sendAndWaitReply(mBlePeripheralUart, command, (status, value) -> {
-            boolean isSketchDetected = false;
-            if (status == BluetoothGatt.GATT_SUCCESS) {
-                if (value != null) {
-                    final String result = BleUtils.bytesToText(value, false);
-                    if (result.startsWith(kSketchVersion)) {
-                        isSketchDetected = true;
-                    } else {
-                        Log.w(TAG, "Error: sketch wrong version:" + result + ". Expecting: " + kSketchVersion);
-                    }
-                }
-            } else {
-                Log.e(TAG, "Error: checkNeopixelSketch: " + status);
-            }
-
-            Log.d(TAG, "isNeopixelAvailable: " + isSketchDetected);
-            mIsSketchChecked = true;
-            mIsSketchDetected = isSketchDetected;
-
-            successHandler.result(isSketchDetected);
-        });
-    }
-
-    private void setupNeopixel(@NonNull NeopixelBoard device, @NonNull NeopixelComponents components, boolean is400HzEnabled, @Nullable SuccessHandler successHandler) {
-        Log.d(TAG, "Command: Setup");
-        final byte[] command = {0x53, device.getWidth(), device.getHeight(), device.getStride(), components.getComponentValue(), (byte) (is400HzEnabled ? 1 : 0)};
-        mUartManager.sendAndWaitReply(mBlePeripheralUart, command, (status, value) -> {
-            boolean success = false;
-            if (status == BluetoothGatt.GATT_SUCCESS && value != null) {
-                final String valueString = BleUtils.bytesToText(value, false);
-                success = valueString.startsWith("OK");
-            }
-
-            Log.d(TAG, "setup success: " + success);
-            if (success) {
-                mBoard = device;
-                mComponents = components;
-                mIs400HzEnabled = is400HzEnabled;
-            }
-            if (successHandler != null) {
-                successHandler.result(success);
-            }
-        });
-    }
-
     void resetBoard() {
         mBoard = null;
     }
-
-//    @SuppressWarnings("SameParameterValue")
-//    private void setPixelColor(int color, float colorW, byte x, byte y, @Nullable SuccessHandler successHandler) {
-//        Log.d(TAG, "Command: set Pixel");
-//
-//        final int numComponents = mComponents.getNumComponents();
-//        if (numComponents != 3 && numComponents != 4) {
-//            Log.e(TAG, "Error: unsupported numComponents: " + numComponents);
-//            if (successHandler != null) {
-//                successHandler.result(false);
-//            }
-//            return;
-//        }
-//
-//        byte red = (byte) Color.red(color);
-//        byte green = (byte) Color.green(color);
-//        byte blue = (byte) Color.blue(color);
-//
-//        byte[] command;     // Command: 'P'
-//        if (numComponents == 4) {
-//            byte colorWValue = (byte) (colorW * 255);
-//            command = new byte[]{0x50, x, y, red, green, blue, colorWValue};
-//        } else {
-//            command = new byte[]{0x50, x, y, red, green, blue};
-//        }
-//        sendCommand(command, successHandler);
-//    }
-
-//    @SuppressWarnings("SameParameterValue")
-    private void clearBoard(int color, float colorW, @Nullable SuccessHandler successHandler) {
-        Log.d(TAG, "Command: Clear");
-
-        final int numComponents = mComponents.getNumComponents();
-        if (numComponents != 3 && numComponents != 4) {
-            Log.e(TAG, "Error: unsupported numComponents: " + numComponents);
-            if (successHandler != null) {
-                successHandler.result(false);
-            }
-            return;
-        }
-
-        byte red = (byte) Color.red(color);
-        byte green = (byte) Color.green(color);
-        byte blue = (byte) Color.blue(color);
-
-        byte[] command;     // Command: 'C'
-        if (numComponents == 4) {
-            byte colorWValue = (byte) (colorW * 255);
-            command = new byte[]{0x43, red, green, blue, colorWValue};
-        } else {
-            command = new byte[]{0x43, red, green, blue};
-        }
-        sendCommand(command, successHandler);
-    }
-
-    @SuppressWarnings("SameParameterValue")
-//    private void setBrightness(float brightness, SuccessHandler successHandler) {
-//        Log.d(TAG, "Command: set Brightness" + brightness);
-//
-//        byte brightnessValue = (byte) (brightness * 255);
-//        byte[] command = {0x42, brightnessValue};       // Command: 'B'
-//        sendCommand(command, successHandler);
-//    }
 
     private void sendCommand(@NonNull byte[] command, @Nullable SuccessHandler successHandler) {
         if (mBoard == null) {
@@ -858,38 +723,6 @@ public class NeopixelFragment extends ConnectedPeripheralFragment implements Neo
     // endregion
 
     // region Board
-
-//    static class Board {
-//        String name;
-//        byte width, height;
-//        byte stride;
-//
-//
-//        Board(@NonNull String name, byte width, byte height, byte stride) {
-//            this.name = name;
-//            this.width = width;
-//            this.height = height;
-//            this.stride = stride;
-//        }
-//
-//        Board(@NonNull Context context, int standardIndex) {
-//
-//            String boardsJsonString = FileUtils.readAssetsFile("neopixel" + File.separator + "NeopixelBoards.json", context.getAssets());
-//            try {
-//                JSONArray boardsArray = new JSONArray(boardsJsonString);
-//                JSONObject boardJson = boardsArray.getJSONObject(standardIndex);
-//
-//                name = boardJson.getString("name");
-//                width = (byte) boardJson.getInt("width");
-//                height = (byte) boardJson.getInt("height");
-//                stride = (byte) boardJson.getInt("stride");
-//
-//            } catch (JSONException e) {
-//                Log.e(TAG, "Invalid board parameters");
-//                e.printStackTrace();
-//            }
-//        }
-//    }
 
     // endregion
 

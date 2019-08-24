@@ -23,7 +23,7 @@ class NeopixelManager(val mContext: Context, peripheralId: String) {
     val blePeripheralUart: BlePeripheralUart
     var neopixelBoard: NeopixelBoard
     val m400HzEnabled = false
-    private val neopixelComponents = NeopixelComponents(if (BuildConfig.DEBUG) NeopixelComponents.kComponents_grbw else NeopixelComponents.kComponents_grb)
+    private val neopixelComponents = NeopixelComponents(NeopixelComponents.kComponents_grb)
     private val mUsingWhite: Boolean by lazy { neopixelComponents.numComponents == 4 }
 
     init {
@@ -92,6 +92,20 @@ class NeopixelManager(val mContext: Context, peripheralId: String) {
         val brightnessValue = (brightness * 255).toByte()
         val command = byteArrayOf(SET_BRIGHTNESS_COMMAND, brightnessValue)
         sendCommand(command, successHandler)
+    }
+
+    fun setAllPixelColor(color: Int, colorW: Float, successHandler: SuccessHandler?) {
+        val red = Color.red(color).toByte()
+        val green = Color.green(color).toByte()
+        val blue = Color.blue(color).toByte()
+
+        val command = arrayListOf(SET_ALL_COMMAND, red, green, blue)
+
+        if (mUsingWhite) {
+            val colorWValue = (colorW * 255).toByte()
+            command.add(colorWValue)
+        }
+        sendCommand(command.toByteArray(), successHandler)
     }
 
     private fun sendCommand(command: ByteArray, successHandler: SuccessHandler?) {
