@@ -18,7 +18,7 @@ const val SKETCH_VERSION = "Neopixel v2."
 class NeopixelManager(val mContext: Context, peripheralId: String) {
     var ready: Boolean = false
     var sketchChecked = false
-    val uartManager: UartPacketManager = UartPacketManager(mContext, null, false, null)
+    val uartManager: UartPacketManager by lazy { UartPacketManager(mContext, null, false, null) }
     var blePeripheral: BlePeripheral? = null
     val blePeripheralUart: BlePeripheralUart
     var neopixelBoard: NeopixelBoard
