@@ -183,7 +183,7 @@ public class NeopixelFragment extends ConnectedPeripheralFragment implements Neo
 
                 @Override
                 public void onStopTrackingTouch(SeekBar seekBar) {
-                    setBrightness(seekBar.getProgress() / 100.0f, null);
+                    mNeopixelManager.setBrightness(seekBar.getProgress() / 100.0f, null);
                 }
             });
         }
@@ -563,7 +563,7 @@ public class NeopixelFragment extends ConnectedPeripheralFragment implements Neo
                     Log.d(TAG, "led (" + x + "," + y + ")");
 
                     setViewBackgroundColor(view, mCurrentColor);
-                    setPixelColor(mCurrentColor, mColorW, x, y, null);
+                    mNeopixelManager.setPixelColor(mCurrentColor, mColorW, x, y, null);
 
                     mBoardCachedColors.set(y * mBoard.getWidth() + x, mCurrentColor);
                 });
@@ -665,34 +665,34 @@ public class NeopixelFragment extends ConnectedPeripheralFragment implements Neo
         mBoard = null;
     }
 
-    @SuppressWarnings("SameParameterValue")
-    private void setPixelColor(int color, float colorW, byte x, byte y, @Nullable SuccessHandler successHandler) {
-        Log.d(TAG, "Command: set Pixel");
+//    @SuppressWarnings("SameParameterValue")
+//    private void setPixelColor(int color, float colorW, byte x, byte y, @Nullable SuccessHandler successHandler) {
+//        Log.d(TAG, "Command: set Pixel");
+//
+//        final int numComponents = mComponents.getNumComponents();
+//        if (numComponents != 3 && numComponents != 4) {
+//            Log.e(TAG, "Error: unsupported numComponents: " + numComponents);
+//            if (successHandler != null) {
+//                successHandler.result(false);
+//            }
+//            return;
+//        }
+//
+//        byte red = (byte) Color.red(color);
+//        byte green = (byte) Color.green(color);
+//        byte blue = (byte) Color.blue(color);
+//
+//        byte[] command;     // Command: 'P'
+//        if (numComponents == 4) {
+//            byte colorWValue = (byte) (colorW * 255);
+//            command = new byte[]{0x50, x, y, red, green, blue, colorWValue};
+//        } else {
+//            command = new byte[]{0x50, x, y, red, green, blue};
+//        }
+//        sendCommand(command, successHandler);
+//    }
 
-        final int numComponents = mComponents.getNumComponents();
-        if (numComponents != 3 && numComponents != 4) {
-            Log.e(TAG, "Error: unsupported numComponents: " + numComponents);
-            if (successHandler != null) {
-                successHandler.result(false);
-            }
-            return;
-        }
-
-        byte red = (byte) Color.red(color);
-        byte green = (byte) Color.green(color);
-        byte blue = (byte) Color.blue(color);
-
-        byte[] command;     // Command: 'P'
-        if (numComponents == 4) {
-            byte colorWValue = (byte) (colorW * 255);
-            command = new byte[]{0x50, x, y, red, green, blue, colorWValue};
-        } else {
-            command = new byte[]{0x50, x, y, red, green, blue};
-        }
-        sendCommand(command, successHandler);
-    }
-
-    @SuppressWarnings("SameParameterValue")
+//    @SuppressWarnings("SameParameterValue")
     private void clearBoard(int color, float colorW, @Nullable SuccessHandler successHandler) {
         Log.d(TAG, "Command: Clear");
 
@@ -720,13 +720,13 @@ public class NeopixelFragment extends ConnectedPeripheralFragment implements Neo
     }
 
     @SuppressWarnings("SameParameterValue")
-    private void setBrightness(float brightness, SuccessHandler successHandler) {
-        Log.d(TAG, "Command: set Brightness" + brightness);
-
-        byte brightnessValue = (byte) (brightness * 255);
-        byte[] command = {0x42, brightnessValue};       // Command: 'B'
-        sendCommand(command, successHandler);
-    }
+//    private void setBrightness(float brightness, SuccessHandler successHandler) {
+//        Log.d(TAG, "Command: set Brightness" + brightness);
+//
+//        byte brightnessValue = (byte) (brightness * 255);
+//        byte[] command = {0x42, brightnessValue};       // Command: 'B'
+//        sendCommand(command, successHandler);
+//    }
 
     private void sendCommand(@NonNull byte[] command, @Nullable SuccessHandler successHandler) {
         if (mBoard == null) {

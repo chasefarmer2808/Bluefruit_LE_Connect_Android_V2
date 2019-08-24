@@ -18,6 +18,8 @@ public class UartPacketManager extends UartPacketManagerBase {
 
     public static final byte GET_VERSION_COMMAND = 0x56;
     public static final byte SETUP_COMMAND = 0x53;
+    public static final byte SET_COLOR_COMMAND = 0x50;
+    public static final byte SET_BRIGHTNESS_COMMAND = 0x42;
 
     // Log
     private final static String TAG = UartPacketManager.class.getSimpleName();
