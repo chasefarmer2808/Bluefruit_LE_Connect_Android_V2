@@ -5,7 +5,7 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.fragment.app.FragmentTransaction
 import com.adafruit.bluefruit.le.connect.R
 
-class NeopixelActivity : AppCompatActivity() {
+internal class NeopixelActivity : AppCompatActivity() {
     lateinit var mNeopixelManager: NeopixelManager
 
     override fun onCreate(savedInstanceState: Bundle?) {

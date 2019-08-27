@@ -3,8 +3,6 @@ package com.adafruit.bluefruit.le.connect.app.neopixel
 import android.bluetooth.BluetoothGatt
 import android.content.Context
 import android.graphics.Color
-import android.util.Log
-import com.adafruit.bluefruit.le.connect.BuildConfig
 import com.adafruit.bluefruit.le.connect.app.ConnectedPeripheralFragment.SuccessHandler
 import com.adafruit.bluefruit.le.connect.ble.BleUtils
 import com.adafruit.bluefruit.le.connect.ble.central.BlePeripheral
@@ -15,15 +13,15 @@ import com.adafruit.bluefruit.le.connect.ble.central.UartPacketManager.*
 
 const val SKETCH_VERSION = "Neopixel v2."
 
-class NeopixelManager(val mContext: Context, peripheralId: String) {
+internal class NeopixelManager(val mContext: Context, peripheralId: String) {
     var ready: Boolean = false
     var sketchChecked = false
+    var neopixelComponents = NeopixelComponents(NeopixelComponents.kComponents_grb)
     val uartManager: UartPacketManager by lazy { UartPacketManager(mContext, null, false, null) }
     var blePeripheral: BlePeripheral? = null
     val blePeripheralUart: BlePeripheralUart
     var neopixelBoard: NeopixelBoard
-    val m400HzEnabled = false
-    private val neopixelComponents = NeopixelComponents(NeopixelComponents.kComponents_grb)
+    var m400HzEnabled = false
     private val mUsingWhite: Boolean by lazy { neopixelComponents.numComponents == 4 }
 
     init {

@@ -38,7 +38,6 @@ import com.adafruit.bluefruit.le.connect.BuildConfig;
 import com.adafruit.bluefruit.le.connect.R;
 import com.adafruit.bluefruit.le.connect.app.CommonHelpFragment;
 import com.adafruit.bluefruit.le.connect.app.ConnectedPeripheralFragment;
-import com.adafruit.bluefruit.le.connect.ble.BleUtils;
 import com.adafruit.bluefruit.le.connect.ble.central.BlePeripheralUart;
 import com.adafruit.bluefruit.le.connect.ble.central.UartPacketManager;
 import com.adafruit.bluefruit.le.connect.utils.DialogUtils;
@@ -83,7 +82,6 @@ public class NeopixelFragment extends ConnectedPeripheralFragment implements Neo
     private final Handler mMainHandler = new Handler(Looper.getMainLooper());
     private int mCurrentColor = Color.RED;
     private float mColorW = 0;
-    private UartPacketManager mUartManager;
     private NeopixelBoard mBoard;                   // The current connected board. Is null if not connected to a board
     private NeopixelBoard mLastSelectedBoard;       // Board selected even if it was not connected
     private NeopixelComponents mComponents = new NeopixelComponents(BuildConfig.DEBUG ? NeopixelComponents.kComponents_grbw : NeopixelComponents.kComponents_grb);
@@ -97,7 +95,6 @@ public class NeopixelFragment extends ConnectedPeripheralFragment implements Neo
     private GestureDetector mGestureDetector;
 
     // Neopixel
-    private boolean mIsSketchChecked = false;
     private boolean mIsSketchDetected = false;
     private boolean isSketchTooltipAlreadyShown = false;
 
@@ -284,7 +281,8 @@ public class NeopixelFragment extends ConnectedPeripheralFragment implements Neo
                 if (activity != null) {
                     FragmentManager fragmentManager = activity.getSupportFragmentManager();
                     if (fragmentManager != null) {
-                        NeopixelComponentSelectorFragment boardComponentSelectorFragment = NeopixelComponentSelectorFragment.newInstance(mComponents.getType(), mIs400HzEnabled);
+                        NeopixelComponentSelectorFragment boardComponentSelectorFragment
+                                = NeopixelComponentSelectorFragment.newInstance(mNeopixelManager.getNeopixelComponents().getType(), mNeopixelManager.getM400HzEnabled());
                         boardComponentSelectorFragment.setTargetFragment(this, 0);
                         boardComponentSelectorFragment.show(fragmentManager, "BoardComponentSelector");
                     }
@@ -355,18 +353,14 @@ public class NeopixelFragment extends ConnectedPeripheralFragment implements Neo
         mBlePeripheralUart = null;
     }
 
-    private boolean isReady() {
-        return mNeopixelManager.getBlePeripheralUart().isUartEnabled();
-    }
-
     @SuppressWarnings("BooleanMethodIsAlwaysInverted")
     private boolean isBoardConfigured() {
         return mBoard != null;
     }
 
     private void changeComponents(NeopixelComponents components, boolean is400HkzEnabled) {
-        mComponents = components;
-        mIs400HzEnabled = is400HkzEnabled;
+        mNeopixelManager.setNeopixelComponents(components);
+        mNeopixelManager.setM400HzEnabled(is400HkzEnabled);
         final int numComponents = components.getNumComponents();
         mColorPickerWComponentView.setVisibility(numComponents == 4 ? View.VISIBLE : View.GONE);
     }
@@ -389,7 +383,6 @@ public class NeopixelFragment extends ConnectedPeripheralFragment implements Neo
 
         mNeopixelManager.checkNeopixelSketch(isDetected -> {
             if (isDetected) {
-                mIsSketchChecked = true;
                 mIsSketchDetected = true;
                 mNeopixelManager.initNeopixel( success -> mMainHandler.post(() -> {
                     if (success) {
@@ -591,32 +584,6 @@ public class NeopixelFragment extends ConnectedPeripheralFragment implements Neo
 
     void resetBoard() {
         mBoard = null;
-    }
-
-    private void sendCommand(@NonNull byte[] command, @Nullable SuccessHandler successHandler) {
-        if (mBoard == null) {
-            Log.w(TAG, "sendCommand: unknown board");
-            if (successHandler != null) {
-                successHandler.result(false);
-            }
-        }
-
-        mNeopixelManager.getUartManager().sendAndWaitReply(mNeopixelManager.getBlePeripheralUart(), command, (status, value) -> {
-            boolean success = false;
-            if (status == BluetoothGatt.GATT_SUCCESS) {
-                if (value != null) {
-                    final String result = BleUtils.bytesToText(value, false);
-                    success = result.startsWith("OK");
-                }
-            } else {
-                Log.e(TAG, "Error: sendDataToUart:" + status);
-            }
-
-            Log.d(TAG, "result: " + success);
-            if (successHandler != null) {
-                successHandler.result(success);
-            }
-        });
     }
 
     // endregion
