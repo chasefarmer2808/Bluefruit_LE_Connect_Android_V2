@@ -6,9 +6,11 @@
     android:background="@color/background"
     tools:context=".app.neopixel.NeopixelAnimationFragment">
 
-    <ListView
-        android:id="@+id/animation_list"
+    <view class="androidx.recyclerview.widget.RecyclerView"
+        android:id="@+id/animation_recycler_view"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"></ListView>
+        android:layout_height="wrap_content">
+
+    </view>
 
 </LinearLayout>

@@ -71,7 +71,7 @@ internal class NeopixelManager(val mContext: Context, peripheralId: String) {
         return blePeripheralUart.isUartEnabled
     }
 
-    fun setPixelColor(color: Int, colorW: Float, row: Byte, col: Byte, successHandler: SuccessHandler? = null) {
+    fun setPixelColor(color: Int, colorW: Float = 0.toFloat(), row: Byte, col: Byte, successHandler: SuccessHandler? = null) {
         val red: Byte = Color.red(color).toByte()
         val green: Byte = Color.green(color).toByte()
         val blue: Byte = Color.blue(color).toByte()
@@ -92,7 +92,7 @@ internal class NeopixelManager(val mContext: Context, peripheralId: String) {
         sendCommand(command, successHandler)
     }
 
-    fun setAllPixelColor(color: Int, colorW: Float, successHandler: SuccessHandler?) {
+    fun setAllPixelColor(color: Int, colorW: Float = 0.toFloat(), successHandler: SuccessHandler? = null) {
         val red = Color.red(color).toByte()
         val green = Color.green(color).toByte()
         val blue = Color.blue(color).toByte()

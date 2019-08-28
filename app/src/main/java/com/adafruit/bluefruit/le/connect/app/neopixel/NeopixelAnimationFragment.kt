@@ -1,51 +1,40 @@
 package com.adafruit.bluefruit.le.connect.app.neopixel
 
 
+import android.content.Context
 import android.os.Bundle
-import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.ArrayAdapter
-import android.widget.ListView
 import androidx.fragment.app.Fragment
-import kotlinx.coroutines.launch
+import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.RecyclerView
 
 import com.adafruit.bluefruit.le.connect.R
-import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.Job
 
 class NeopixelAnimationFragment : Fragment() {
 
-    private var mFlag: Boolean = false
+    private lateinit var mAnimationRecyclerView: RecyclerView
+    private val mAnimationAdapter: AnimationListAdapter by lazy { AnimationListAdapter(activity as Context) }
+    private var mAnimationJob: Job? = null
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?,
                               savedInstanceState: Bundle?): View? {
 
         val rootView: View = inflater.inflate(R.layout.fragment_neopixel_animation, container, false)
 
-        val animListAdapter = ArrayAdapter<String>(activity, R.layout.animation_list_item, R.id.animation_item, arrayOf("test"))
-        val animList: ListView = rootView.findViewById(R.id.animation_list)
-        animList.adapter = animListAdapter
-
-        animList.setOnItemClickListener {_,_,position,_ ->
-            if (!mFlag) {
-                mFlag = true
-
-                GlobalScope.launch  {
-                    printTest()
-                }
-            }
-            else {
-                mFlag = false
-            }
+        mAnimationRecyclerView = rootView.findViewById<RecyclerView>(R.id.animation_recycler_view).apply {
+            setHasFixedSize(true)
+            layoutManager = LinearLayoutManager(activity)
+            adapter = mAnimationAdapter
         }
 
         return rootView
     }
 
-    private suspend fun printTest() {
-        while (mFlag) {
-            Log.d("TEST", "here")
-        }
+    override fun onPause() {
+        super.onPause()
+        mAnimationAdapter.cancelAllAnimations()
     }
 }
