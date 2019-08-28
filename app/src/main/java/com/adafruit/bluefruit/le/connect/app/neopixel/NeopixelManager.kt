@@ -14,6 +14,36 @@ import com.adafruit.bluefruit.le.connect.ble.central.UartPacketManager.*
 const val SKETCH_VERSION = "Neopixel v2."
 
 internal class NeopixelManager(val mContext: Context, peripheralId: String) {
+
+    companion object {
+        fun wheel(pos: Byte): Color {
+            var tempPos: Int = 255 - pos
+            var red = 0
+            var green = 0
+            var blue = 0
+
+            when {
+                tempPos < 85 -> {
+                    red = 255 - tempPos * 3
+                    blue = tempPos * 3
+                }
+                tempPos < 170 -> {
+                    tempPos -= 85
+                    green = tempPos * 3
+                    blue = 255 - tempPos * 3
+                }
+                else -> {
+                    tempPos -= 170
+                    red = tempPos * 3
+                    green = 255 - tempPos * 3
+                }
+            }
+
+
+            return Color.valueOf(red.toFloat(), green.toFloat(), blue.toFloat())
+        }
+    }
+
     var ready: Boolean = false
     var sketchChecked = false
     var neopixelComponents = NeopixelComponents(NeopixelComponents.kComponents_grb)
@@ -71,7 +101,7 @@ internal class NeopixelManager(val mContext: Context, peripheralId: String) {
         return blePeripheralUart.isUartEnabled
     }
 
-    fun setPixelColor(color: Int, colorW: Float = 0.toFloat(), row: Byte, col: Byte, successHandler: SuccessHandler? = null) {
+    fun setPixelColor(color: Int, colorW: Float = 0.toFloat(), row: Byte = 0, col: Byte = 0, successHandler: SuccessHandler? = null) {
         val red: Byte = Color.red(color).toByte()
         val green: Byte = Color.green(color).toByte()
         val blue: Byte = Color.blue(color).toByte()

@@ -58,10 +58,14 @@ class AnimationListAdapter(private val mContext: Context) : RecyclerView.Adapter
 
     private suspend fun rainbow(flagPos: Int) {
         while (mAnimationFlags[flagPos]) {
-            mNeopixelManager.setAllPixelColor(Color.RED)
-            delay(1000)
-            mNeopixelManager.setAllPixelColor(Color.BLACK)
-            delay(1000)
+            for (i in 0 until (256 * 5)) {
+                for (j in 0 until 3) {
+                    val pos = ((j * 256 / 3) + i) and 255
+                    val color = NeopixelManager.wheel(pos.toByte())
+                    mNeopixelManager.setPixelColor(color.toArgb(), row = j.toByte())
+                    delay(20)
+                }
+            }
         }
     }
 }
