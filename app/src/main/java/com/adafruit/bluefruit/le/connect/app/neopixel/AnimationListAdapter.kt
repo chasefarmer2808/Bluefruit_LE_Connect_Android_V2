@@ -2,6 +2,7 @@ package com.adafruit.bluefruit.le.connect.app.neopixel
 
 import android.content.Context
 import android.graphics.Color
+import android.graphics.ColorSpace
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -9,6 +10,7 @@ import android.widget.Button
 import androidx.recyclerview.widget.RecyclerView
 import com.adafruit.bluefruit.le.connect.R
 import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -19,6 +21,7 @@ class AnimationListAdapter(private val mContext: Context) : RecyclerView.Adapter
     private val defaultAnimations = arrayListOf("Rainbow")
     private val mAnimationFlags = mutableListOf(false)
     private val mNeopixelManager: NeopixelManager by lazy { (mContext as NeopixelActivity).mNeopixelManager }
+    private var mAnimJob: Job? = null
 
     inner class AnimationViewHolder(animView: View) :
             RecyclerView.ViewHolder(animView) {
@@ -26,12 +29,18 @@ class AnimationListAdapter(private val mContext: Context) : RecyclerView.Adapter
 
         init {
             playBtn.setOnClickListener {
-                mAnimationFlags.replaceAll { false }
+//                mAnimationFlags.replaceAll { false }
                 when (adapterPosition) {
                     RAINBOW_ANIM_POS -> {
-                        mAnimationFlags[adapterPosition] = true
-                        GlobalScope.launch {
-                            rainbow(adapterPosition)
+                        mAnimationFlags[adapterPosition] = !mAnimationFlags[adapterPosition]
+
+                        if (mAnimationFlags[adapterPosition]) {
+                            mAnimJob = GlobalScope.launch {
+                                rainbow()
+                            }
+                        }
+                        else {
+                            mAnimJob?.cancel()
                         }
                     }
                 }
@@ -56,14 +65,14 @@ class AnimationListAdapter(private val mContext: Context) : RecyclerView.Adapter
         (holder as AnimationViewHolder).playBtn.text = defaultAnimations[position]
     }
 
-    private suspend fun rainbow(flagPos: Int) {
-        while (mAnimationFlags[flagPos]) {
-            for (i in 0 until (256 * 5)) {
+    private suspend fun rainbow() {
+        while (true) {
+            for (i in 0 until 360) {
                 for (j in 0 until 3) {
-                    val pos = ((j * 256 / 3) + i) and 255
-                    val color = NeopixelManager.wheel(pos.toByte())
-                    mNeopixelManager.setPixelColor(color.toArgb(), row = j.toByte())
-                    delay(20)
+                    val colorIndex = (i + (6 * j)).rem(360)
+                    val color = Color.HSVToColor(floatArrayOf(colorIndex.toFloat(), 1.toFloat(), 1.toFloat()))
+                    mNeopixelManager.setPixelColor(color, row = j.toByte())
+                    delay(5)
                 }
             }
         }

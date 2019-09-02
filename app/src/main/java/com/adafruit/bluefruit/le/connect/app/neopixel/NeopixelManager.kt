@@ -39,7 +39,6 @@ internal class NeopixelManager(val mContext: Context, peripheralId: String) {
                 }
             }
 
-
             return Color.valueOf(red.toFloat(), green.toFloat(), blue.toFloat())
         }
     }
