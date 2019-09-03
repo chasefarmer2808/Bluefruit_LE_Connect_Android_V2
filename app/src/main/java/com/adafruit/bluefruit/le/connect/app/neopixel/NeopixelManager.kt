@@ -59,7 +59,8 @@ internal class NeopixelManager(val mContext: Context, peripheralId: String) {
         neopixelBoard = NeopixelBoard(mContext, 0)
     }
 
-    fun initNeopixel(successHandler: SuccessHandler) {
+    fun initNeopixel(board: NeopixelBoard, successHandler: SuccessHandler) {
+        neopixelBoard = board
         ready = false
         var enabledByte: Byte = 0
 

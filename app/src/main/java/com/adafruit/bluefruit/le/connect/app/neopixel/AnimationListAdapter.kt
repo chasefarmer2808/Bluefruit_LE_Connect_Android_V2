@@ -15,6 +15,8 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 const val RAINBOW_ANIM_POS = 0
+const val RAINBOW_DELAY_MS = 40.toLong()
+const val MAX_HUE = 360
 
 class AnimationListAdapter(private val mContext: Context) : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
 
@@ -66,14 +68,15 @@ class AnimationListAdapter(private val mContext: Context) : RecyclerView.Adapter
     }
 
     private suspend fun rainbow() {
+        var currHue = 0
+
         while (true) {
-            for (i in 0 until 360) {
-                for (j in 0 until 3) {
-                    val colorIndex = (i + (6 * j)).rem(360)
-                    val color = Color.HSVToColor(floatArrayOf(colorIndex.toFloat(), 1.toFloat(), 1.toFloat()))
-                    mNeopixelManager.setPixelColor(color, row = j.toByte())
-                    delay(5)
-                }
+            for (i in 0 until mNeopixelManager.neopixelBoard.width) {
+                val color = Color.HSVToColor(floatArrayOf(currHue.toFloat(), 1.toFloat(), 1.toFloat()))
+                mNeopixelManager.setPixelColor(color, row = i.toByte())
+                currHue++
+                currHue = currHue.rem(MAX_HUE)
+                delay(RAINBOW_DELAY_MS)
             }
         }
     }

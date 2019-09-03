@@ -384,7 +384,7 @@ public class NeopixelFragment extends ConnectedPeripheralFragment implements Neo
         mNeopixelManager.checkNeopixelSketch(isDetected -> {
             if (isDetected) {
                 mIsSketchDetected = true;
-                mNeopixelManager.initNeopixel( success -> mMainHandler.post(() -> {
+                mNeopixelManager.initNeopixel(board, success -> mMainHandler.post(() -> {
                     if (success) {
                         mBoard = mNeopixelManager.getNeopixelBoard();
                         mIs400HzEnabled = mNeopixelManager.getM400HzEnabled();
