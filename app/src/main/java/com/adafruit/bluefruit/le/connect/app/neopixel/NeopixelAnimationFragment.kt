@@ -17,7 +17,6 @@ class NeopixelAnimationFragment : Fragment() {
 
     private lateinit var mAnimationRecyclerView: RecyclerView
     private val mAnimationAdapter: AnimationListAdapter by lazy { AnimationListAdapter(activity as Context) }
-    private var mAnimationJob: Job? = null
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?,
                               savedInstanceState: Bundle?): View? {
@@ -25,7 +24,7 @@ class NeopixelAnimationFragment : Fragment() {
         val rootView: View = inflater.inflate(R.layout.fragment_neopixel_animation, container, false)
 
         mAnimationRecyclerView = rootView.findViewById<RecyclerView>(R.id.animation_recycler_view).apply {
-            setHasFixedSize(true)
+//            setHasFixedSize(true)
             layoutManager = LinearLayoutManager(activity)
             adapter = mAnimationAdapter
         }

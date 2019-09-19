@@ -136,7 +136,7 @@ internal class NeopixelManager(val mContext: Context, peripheralId: String) {
         sendCommand(command.toByteArray(), successHandler)
     }
 
-    private fun sendCommand(command: ByteArray, successHandler: SuccessHandler?) {
+    fun sendCommand(command: ByteArray, successHandler: SuccessHandler? = null) {
         uartManager.sendAndWaitReply(blePeripheralUart, command) { status, value ->
             var success = false
             if (status == BluetoothGatt.GATT_SUCCESS) {
