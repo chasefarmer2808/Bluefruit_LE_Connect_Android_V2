@@ -10,6 +10,7 @@ import android.widget.Button
 import androidx.recyclerview.widget.RecyclerView
 import com.adafruit.bluefruit.le.connect.R
 import com.adafruit.bluefruit.le.connect.ble.central.UartPacketManager.RAINBOW_COMMAND
+import com.adafruit.bluefruit.le.connect.ble.central.UartPacketManager.STOP_ANIMATION
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -33,28 +34,31 @@ class AnimationListAdapter(private val mContext: Context) : RecyclerView.Adapter
 
         init {
             playBtn.setOnClickListener {
-                mAnimationFlags[adapterPosition] = !mAnimationFlags[adapterPosition]
+                // Pause everything except current pos and toggle current pos.
+                mAnimationFlags.forEachIndexed { index, flag ->
+                    if (index == adapterPosition) {
+                        mAnimationFlags[index] = !flag
+                    }
+                    else {
+                        mAnimationFlags[index] = false
+                    }
+                }
 
                 when (adapterPosition) {
                     RAINBOW_ANIM_POS -> {
-//                        if (mAnimationFlags[adapterPosition]) {
-//                            mAnimJob = GlobalScope.launch {
-//                                rainbow()
-//                            }
-//                        }
-//                        else {
-//                            mAnimJob?.cancel()
-//                        }
-                        mNeopixelManager.sendCommand(byteArrayOf(RAINBOW_COMMAND))
+                        if (mAnimationFlags[adapterPosition]) {
+                            mNeopixelManager.sendCommand(byteArrayOf(RAINBOW_COMMAND))
+                        }
+                        else {
+                            mNeopixelManager.sendCommand(byteArrayOf(STOP_ANIMATION))
+                        }
                     }
                     THEATRE_ANIM_POS -> {
                         if (mAnimationFlags[adapterPosition]) {
-                            mAnimJob = GlobalScope.launch {
-                                theatre()
-                            }
+                            mNeopixelManager.sendCommand(byteArrayOf(0x48))
                         }
                         else {
-                            mAnimJob?.cancel()
+                            mNeopixelManager.sendCommand(byteArrayOf(STOP_ANIMATION))
                         }
                     }
                 }
