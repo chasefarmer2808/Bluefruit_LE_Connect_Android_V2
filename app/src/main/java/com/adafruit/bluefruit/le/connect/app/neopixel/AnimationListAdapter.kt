@@ -9,8 +9,7 @@ import android.view.ViewGroup
 import android.widget.Button
 import androidx.recyclerview.widget.RecyclerView
 import com.adafruit.bluefruit.le.connect.R
-import com.adafruit.bluefruit.le.connect.ble.central.UartPacketManager.RAINBOW_COMMAND
-import com.adafruit.bluefruit.le.connect.ble.central.UartPacketManager.STOP_ANIMATION
+import com.adafruit.bluefruit.le.connect.ble.central.UartPacketManager.*
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -18,15 +17,13 @@ import kotlinx.coroutines.launch
 
 const val RAINBOW_ANIM_POS = 0
 const val THEATRE_ANIM_POS = 1
-const val RAINBOW_DELAY_MS = 40.toLong()
-const val MAX_HUE = 360
+const val RANDOM_FILL_ANIM_POS = 2
 
 class AnimationListAdapter(private val mContext: Context) : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
 
-    private val defaultAnimations = arrayListOf("Rainbow", "Theatre")
-    private val mAnimationFlags = mutableListOf(false, false)
+    private val defaultAnimations = arrayListOf("Rainbow", "Theatre", "Random Position")
+    private val mAnimationFlags = mutableListOf(false, false, false)
     private val mNeopixelManager: NeopixelManager by lazy { (mContext as NeopixelActivity).mNeopixelManager }
-    private var mAnimJob: Job? = null
 
     inner class AnimationViewHolder(animView: View) :
             RecyclerView.ViewHolder(animView) {
@@ -55,7 +52,15 @@ class AnimationListAdapter(private val mContext: Context) : RecyclerView.Adapter
                     }
                     THEATRE_ANIM_POS -> {
                         if (mAnimationFlags[adapterPosition]) {
-                            mNeopixelManager.sendCommand(byteArrayOf(0x48))
+                            mNeopixelManager.sendCommand(byteArrayOf(THEATRE_COMMAND))
+                        }
+                        else {
+                            mNeopixelManager.sendCommand(byteArrayOf(STOP_ANIMATION))
+                        }
+                    }
+                    RANDOM_FILL_ANIM_POS -> {
+                        if (mAnimationFlags[adapterPosition]) {
+                            mNeopixelManager.sendCommand(byteArrayOf(RANDOM_FILL_COMMAND))
                         }
                         else {
                             mNeopixelManager.sendCommand(byteArrayOf(STOP_ANIMATION))
@@ -64,10 +69,6 @@ class AnimationListAdapter(private val mContext: Context) : RecyclerView.Adapter
                 }
             }
         }
-    }
-
-    fun cancelAllAnimations() {
-        mAnimJob?.cancel()
     }
 
     override fun getItemCount(): Int {
@@ -81,37 +82,5 @@ class AnimationListAdapter(private val mContext: Context) : RecyclerView.Adapter
 
     override fun onBindViewHolder(holder: RecyclerView.ViewHolder, position: Int) {
         (holder as AnimationViewHolder).playBtn.text = defaultAnimations[position]
-    }
-
-    private suspend fun rainbow() {
-        var currHue = 0
-
-        while (true) {
-            for (i in 0 until mNeopixelManager.neopixelBoard.width) {
-                val color = Color.HSVToColor(floatArrayOf(currHue.toFloat(), 1.toFloat(), 1.toFloat()))
-                mNeopixelManager.setPixelColor(color, row = i.toByte())
-                currHue++
-                currHue = currHue.rem(MAX_HUE)
-                delay(RAINBOW_DELAY_MS)
-            }
-        }
-    }
-
-    private suspend fun theatre() {
-        while (true) {
-            for (i in 0 until mNeopixelManager.neopixelBoard.width) {
-                mNeopixelManager.setPixelColor(Color.CYAN, row = i.toByte())
-
-                val prevIndex = if (i == 0) {
-                    mNeopixelManager.neopixelBoard.width - 1
-                }
-                else {
-                    i - 1
-                }
-
-                mNeopixelManager.setPixelColor(Color.BLACK, row = prevIndex.toByte())
-                delay(2000)
-            }
-        }
     }
 }

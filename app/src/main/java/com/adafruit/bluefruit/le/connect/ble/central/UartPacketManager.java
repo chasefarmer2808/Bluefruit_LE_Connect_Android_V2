@@ -22,6 +22,8 @@ public class UartPacketManager extends UartPacketManagerBase {
     public static final byte SET_BRIGHTNESS_COMMAND = 0x42;
     public static final byte SET_ALL_COMMAND = 0x43;
     public static final byte RAINBOW_COMMAND = 0x52;
+    public static final byte THEATRE_COMMAND = 0x48;
+    public static final byte RANDOM_FILL_COMMAND = 0x41;
     public static final byte STOP_ANIMATION = 0x54;
 
     // Log

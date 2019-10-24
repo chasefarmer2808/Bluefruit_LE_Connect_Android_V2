@@ -11,7 +11,6 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 
 import com.adafruit.bluefruit.le.connect.R
-import kotlinx.coroutines.Job
 
 class NeopixelAnimationFragment : Fragment() {
 
@@ -24,16 +23,10 @@ class NeopixelAnimationFragment : Fragment() {
         val rootView: View = inflater.inflate(R.layout.fragment_neopixel_animation, container, false)
 
         mAnimationRecyclerView = rootView.findViewById<RecyclerView>(R.id.animation_recycler_view).apply {
-//            setHasFixedSize(true)
             layoutManager = LinearLayoutManager(activity)
             adapter = mAnimationAdapter
         }
 
         return rootView
-    }
-
-    override fun onPause() {
-        super.onPause()
-        mAnimationAdapter.cancelAllAnimations()
     }
 }
