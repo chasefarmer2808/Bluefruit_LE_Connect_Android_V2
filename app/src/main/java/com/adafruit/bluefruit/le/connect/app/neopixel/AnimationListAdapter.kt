@@ -15,16 +15,17 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
-const val RAINBOW_ANIM_POS = 0
-const val THEATRE_ANIM_POS = 1
-const val RANDOM_FILL_ANIM_POS = 2
-const val METEOR_ANIM_POS = 3
-const val SIDE_FILL_ANIM_POS = 4
+const val PLAY_ALL_POS = 0
+const val RAINBOW_ANIM_POS = 1
+const val THEATRE_ANIM_POS = 2
+const val RANDOM_FILL_ANIM_POS = 3
+const val METEOR_ANIM_POS = 4
+const val SIDE_FILL_ANIM_POS = 5
 
 class AnimationListAdapter(private val mContext: Context) : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
 
-    private val defaultAnimations = arrayListOf("Rainbow", "Theatre", "Random Position", "Meteor", "Side Fill")
-    private val mAnimationFlags = mutableListOf(false, false, false, false, false)
+    private val defaultAnimations = arrayListOf("Play All", "Rainbow", "Theatre", "Random Position", "Meteor", "Side Fill")
+    private val mAnimationFlags = mutableListOf(false, false, false, false, false, false)
     private val mNeopixelManager: NeopixelManager by lazy { (mContext as NeopixelActivity).mNeopixelManager }
 
     inner class AnimationViewHolder(animView: View) :
@@ -44,6 +45,14 @@ class AnimationListAdapter(private val mContext: Context) : RecyclerView.Adapter
                 }
 
                 when (adapterPosition) {
+                    PLAY_ALL_POS -> {
+                        if (mAnimationFlags[adapterPosition]) {
+                            mNeopixelManager.sendCommand(byteArrayOf(PLAY_ALL_COMMAND))
+                        }
+                        else {
+                            mNeopixelManager.sendCommand(byteArrayOf(STOP_ANIMATION))
+                        }
+                    }
                     RAINBOW_ANIM_POS -> {
                         if (mAnimationFlags[adapterPosition]) {
                             mNeopixelManager.sendCommand(byteArrayOf(RAINBOW_COMMAND))

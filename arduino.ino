@@ -191,31 +191,42 @@ void handleCommand(int command) {
 
     case 'R': {
       playAnimation = true;
-      commandRainbowCycle();
+      commandRainbowCycle(false);
       break;
     }
 
     case 'H': {
       playAnimation = true;
-      commandTheaterChaseRainbow();
+      commandTheaterChaseRainbow(false);
       break;
     }
 
     case 'A': {
       playAnimation = true;
-      commandRandomPositionFill(200);
+      commandRandomPositionFill(200, false);
       break;
     }
 
     case 'M': {
       playAnimation = true;
-      commandMeteorRain(10, 64, true, 30);
+      commandMeteorRain(10, 64, true, 30, false);
       break;
     }
 
     case 'F': {
       playAnimation = true;
-      commandSideFillRandom(60);
+      commandSideFillRandom(60, false);
+      break;
+    }
+
+    case 'D': {
+      playAnimation = true;
+      commandSideFillRandom(60, true);
+      commandRainbowCycle(true);
+      commandTheaterChaseRainbow(true);
+      commandRandomPositionFill(200, true);
+      commandMeteorRain(10, 64, true, 30, true);
+      handleCommand('D');
       break;
     }
 
@@ -431,10 +442,10 @@ void commandRainbow() {
   }
 }
 
-void commandRainbowCycle() {
+void commandRainbowCycle(boolean single) {
   uint16_t i, j;
 
-  while (playAnimation) {
+  while (playAnimation || single) {
     for(j=0; j<256*5; j++) { // 5 cycles of all colors on wheel
       for(i=0; i< neopixel.numPixels(); i++) {
         neopixel.setPixelColor(i, Wheel(((i * 256 / neopixel.numPixels()) + j) & 255));
@@ -450,12 +461,16 @@ void commandRainbowCycle() {
       neopixel.show();
       delay(20);
     }
+
+    if (single) {
+      break;
+    }
   }
 }
 
-void commandTheaterChaseRainbow() {
-  while (playAnimation) {
-  int firstPixelHue = 0;     // First pixel starts at red (hue 0)
+void commandTheaterChaseRainbow(boolean single) {
+  while (playAnimation || single) {
+    int firstPixelHue = 0;     // First pixel starts at red (hue 0)
     for(int a=0; a<30; a++) {  // Repeat 30 times...
       for(int b=0; b<3; b++) { //  'b' counts from 0 to 2...
         neopixel.clear();         //   Set all pixels in RAM to 0 (off)
@@ -480,11 +495,15 @@ void commandTheaterChaseRainbow() {
         firstPixelHue += 65536 / 90; // One cycle of color wheel over 90 frames
       }
     }
+
+    if (single) {
+      break;
+    }
   }
 }
 
-void commandRandomPositionFill(uint8_t wait) {
-  while (playAnimation) {
+void commandRandomPositionFill(uint8_t wait, boolean single) {
+  while (playAnimation || single) {
     clearStrip();
 
     int filled[neopixel.numPixels()];
@@ -512,11 +531,15 @@ void commandRandomPositionFill(uint8_t wait) {
         delay(wait);
       }
     }
+
+    if (single) {
+      break;
+    }
   }
 }
 
-void commandMeteorRain(byte meteorSize, byte meteorTrailDecay, boolean meteorRandomDecay, int speedDelay) {
-  while (playAnimation) {
+void commandMeteorRain(byte meteorSize, byte meteorTrailDecay, boolean meteorRandomDecay, int speedDelay, boolean single) {
+  while (playAnimation || single) {
     clearStrip();
     uint32_t color = getRandomRGB();
 
@@ -555,11 +578,15 @@ void commandMeteorRain(byte meteorSize, byte meteorTrailDecay, boolean meteorRan
       neopixel.show();
       delay(speedDelay);
     }
+
+    if (single) {
+      break;
+    }
   }
 }
 
-void commandSideFillRandom(uint8_t wait) {
-  while (playAnimation) {
+void commandSideFillRandom(uint8_t wait, boolean single) {
+  while (playAnimation || single) {
     clearStrip();
     uint32_t c = getRandomRGB();
   
@@ -589,6 +616,10 @@ void commandSideFillRandom(uint8_t wait) {
         sendResponse("OK");
         return;
       }
+    }
+
+    if (single) {
+      break;
     }
   }
 }

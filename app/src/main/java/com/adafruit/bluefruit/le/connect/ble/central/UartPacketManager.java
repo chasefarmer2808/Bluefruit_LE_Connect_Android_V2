@@ -26,6 +26,7 @@ public class UartPacketManager extends UartPacketManagerBase {
     public static final byte RANDOM_FILL_COMMAND = 0x41;
     public static final byte METEOR_COMMAND = 0x4D;
     public static final byte SIDE_FILL_RANDOM_COMMAND = 0x46;
+    public static final byte PLAY_ALL_COMMAND = 0x44;
     public static final byte STOP_ANIMATION = 0x54;
 
     // Log
