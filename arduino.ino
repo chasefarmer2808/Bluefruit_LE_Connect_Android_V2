@@ -207,6 +207,12 @@ void handleCommand(int command) {
       break;
     }
 
+    case 'M': {
+      playAnimation = true;
+      commandMeteorRain(10, 64, true, 30);
+      break;
+    }
+
     case 'T': {
       playAnimation = false;
       sendResponse("OK");
@@ -501,6 +507,66 @@ void commandRandomPositionFill(uint8_t wait) {
       }
     }
   }
+}
+
+void commandMeteorRain(byte meteorSize, byte meteorTrailDecay, boolean meteorRandomDecay, int speedDelay) {
+  while (playAnimation) {
+    clearStrip();
+    uint32_t color = getRandomRGB();
+
+    int numPixels = neopixel.numPixels();
+
+    for (int i = 0; i < numPixels+numPixels; i++) {
+      
+      // Fade brightness of all LEDs.
+      for (int j = 0; j < numPixels; j++) {
+        if ((!meteorRandomDecay) || (random(10) < 5)) {
+          fadeToBlack(j, meteorTrailDecay);
+
+          handleCommand(ble.read());
+          if (!playAnimation) {
+            // Done
+            sendResponse("OK");
+            return;
+          }
+        }
+      }
+
+      // Draw meteor.
+      for (int j = 0; j < meteorSize; j++) {
+        if ((i - j < numPixels) && (i - j >= 0)) {
+          neopixel.setPixelColor(i - j, color);
+
+          handleCommand(ble.read());
+          if (!playAnimation) {
+            // Done
+            sendResponse("OK");
+            return;
+          }
+        }
+      }
+
+      neopixel.show();
+      delay(speedDelay);
+    }
+  }
+}
+
+void fadeToBlack(int pixelNum, byte fadeValue) {
+  uint32_t oldColor;
+  uint8_t r, g, b;
+  int value;
+
+  oldColor = neopixel.getPixelColor(pixelNum);
+  r = (oldColor & 0x00ff0000UL) >> 16;
+  g = (oldColor & 0x0000ff00UL) >> 8;
+  b = (oldColor & 0x000000ffUL);
+
+  r = (r<=10)? 0 : (int) r-(r*fadeValue/256);
+  g = (g<=10)? 0 : (int) g-(g*fadeValue/256);
+  b = (b<=10)? 0 : (int) b-(b*fadeValue/256);
+
+  neopixel.setPixelColor(pixelNum, r, g, b);
 }
 
 void clearStrip() {

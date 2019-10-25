@@ -18,11 +18,12 @@ import kotlinx.coroutines.launch
 const val RAINBOW_ANIM_POS = 0
 const val THEATRE_ANIM_POS = 1
 const val RANDOM_FILL_ANIM_POS = 2
+const val METEOR_ANIM_POS = 3
 
 class AnimationListAdapter(private val mContext: Context) : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
 
-    private val defaultAnimations = arrayListOf("Rainbow", "Theatre", "Random Position")
-    private val mAnimationFlags = mutableListOf(false, false, false)
+    private val defaultAnimations = arrayListOf("Rainbow", "Theatre", "Random Position", "Meteor")
+    private val mAnimationFlags = mutableListOf(false, false, false, false)
     private val mNeopixelManager: NeopixelManager by lazy { (mContext as NeopixelActivity).mNeopixelManager }
 
     inner class AnimationViewHolder(animView: View) :
@@ -61,6 +62,14 @@ class AnimationListAdapter(private val mContext: Context) : RecyclerView.Adapter
                     RANDOM_FILL_ANIM_POS -> {
                         if (mAnimationFlags[adapterPosition]) {
                             mNeopixelManager.sendCommand(byteArrayOf(RANDOM_FILL_COMMAND))
+                        }
+                        else {
+                            mNeopixelManager.sendCommand(byteArrayOf(STOP_ANIMATION))
+                        }
+                    }
+                    METEOR_ANIM_POS -> {
+                        if (mAnimationFlags[adapterPosition]) {
+                            mNeopixelManager.sendCommand(byteArrayOf(METEOR_COMMAND))
                         }
                         else {
                             mNeopixelManager.sendCommand(byteArrayOf(STOP_ANIMATION))
