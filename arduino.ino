@@ -213,6 +213,12 @@ void handleCommand(int command) {
       break;
     }
 
+    case 'F': {
+      playAnimation = true;
+      commandSideFillRandom(60);
+      break;
+    }
+
     case 'T': {
       playAnimation = false;
       sendResponse("OK");
@@ -548,6 +554,41 @@ void commandMeteorRain(byte meteorSize, byte meteorTrailDecay, boolean meteorRan
 
       neopixel.show();
       delay(speedDelay);
+    }
+  }
+}
+
+void commandSideFillRandom(uint8_t wait) {
+  while (playAnimation) {
+    clearStrip();
+    uint32_t c = getRandomRGB();
+  
+    for(uint16_t i=0; i<(neopixel.numPixels()/2); i++) { // fill strip from sides to middle
+      neopixel.setPixelColor(i, c);
+      neopixel.setPixelColor(neopixel.numPixels() - i, c);
+      neopixel.show();
+      delay(wait);
+
+      handleCommand(ble.read());
+      if (!playAnimation) {
+        // Done
+        sendResponse("OK");
+        return;
+      }
+    }
+  
+    for(uint16_t i=0; i<(neopixel.numPixels()/2); i++) { // reverse
+      neopixel.setPixelColor(neopixel.numPixels()/2 + i, neopixel.Color(0, 0, 0));
+      neopixel.setPixelColor(neopixel.numPixels()/2 - i, neopixel.Color(0, 0, 0));
+      neopixel.show();
+      delay(wait);
+
+      handleCommand(ble.read());
+      if (!playAnimation) {
+        // Done
+        sendResponse("OK");
+        return;
+      }
     }
   }
 }
