@@ -107,6 +107,9 @@ void setup(void)
 
   // Config Neopixels
   neopixel.begin();
+  neopixel.clear();
+  neopixel.setPixelColor(30, 255, 172, 68);
+  neopixel.show();
 
   /* Initialise the module */
   Serial.print(F("Initialising the Bluefruit LE module: "));
@@ -143,7 +146,6 @@ void setup(void)
   ble.setMode(BLUEFRUIT_MODE_DATA);
 
   Serial.println(F("***********************"));
-
 }
 
 void loop()
@@ -639,6 +641,13 @@ void fadeToBlack(int pixelNum, byte fadeValue) {
   b = (b<=10)? 0 : (int) b-(b*fadeValue/256);
 
   neopixel.setPixelColor(pixelNum, r, g, b);
+}
+
+void setStripRGBW(uint8_t r, uint8_t g, uint8_t b, uint8_t w) {
+  for (int i = 0; i < neopixel.numPixels(); i++) {
+    neopixel.setPixelColor(i, neopixel.Color(r, g, b, w));
+  }
+  neopixel.show();
 }
 
 void clearStrip() {
