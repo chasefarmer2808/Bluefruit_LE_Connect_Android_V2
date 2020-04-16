@@ -1,8 +1,11 @@
 package com.adafruit.bluefruit.le.connect.app;
 
 import android.app.AlertDialog;
-import android.content.Context;
 import android.os.Bundle;
+import android.view.LayoutInflater;
+import android.view.View;
+import android.view.ViewGroup;
+
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.ActionBar;
@@ -11,18 +14,10 @@ import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentActivity;
 import androidx.fragment.app.FragmentManager;
 import androidx.fragment.app.FragmentTransaction;
-import androidx.lifecycle.ViewModelProviders;
-
-import android.util.Log;
-import android.view.LayoutInflater;
-import android.view.MenuItem;
-import android.view.View;
-import android.view.ViewGroup;
 
 import com.adafruit.bluefruit.le.connect.R;
 import com.adafruit.bluefruit.le.connect.models.PeripheralModeViewModel;
 import com.adafruit.bluefruit.le.connect.utils.DialogUtils;
-import com.google.android.material.bottomnavigation.BottomNavigationView;
 
 import java.lang.ref.WeakReference;
 
@@ -37,7 +32,7 @@ public class MainFragment extends Fragment {
     private WeakReference<Fragment> mCurrentFragmentReference;
     private int selectedFragmentId = 0;
     //private PeripheralModeViewModel mPeripheralModeViewModel;
-    //private boolean mIsInitialNavigationItemSelected = false;
+    private boolean mIsInitialNavigationItemSelected = false;
 
     // region Fragment Lifecycle
     public MainFragment() {
@@ -72,8 +67,8 @@ public class MainFragment extends Fragment {
         mNavigationView.setOnNavigationItemSelectedListener(this::selectFragment);
         updateActionBarTitle(mNavigationView.getSelectedItemId());       // Restore title (i.e. when a fragment is popped)
         */
+        updateActionBarTitle(R.id.navigation_central);      // Restore title (i.e. when a fragment is popped)
 
-        selectFragment(R.id.navigation_central);
     }
 
     @Override
@@ -88,13 +83,13 @@ public class MainFragment extends Fragment {
             // update options menu with current values
             activity.invalidateOptionsMenu();
 
-            /*
             // Setup when activity is created for the first time
             if (!mIsInitialNavigationItemSelected) {
                 // Set initial value
-                mNavigationView.setSelectedItemId(R.id.navigation_central);
+                //mNavigationView.setSelectedItemId(R.id.navigation_central);
+                selectFragment(R.id.navigation_central);
                 mIsInitialNavigationItemSelected = true;
-            }*/
+            }
         }
     }
 
@@ -117,6 +112,7 @@ public class MainFragment extends Fragment {
     }*/
 
 
+    @SuppressWarnings({"SameParameterValue", "UnusedReturnValue"})
     private boolean selectFragment(int navigationSelectedItem) {
 
         // Check errors

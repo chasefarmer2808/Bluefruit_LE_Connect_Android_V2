@@ -22,6 +22,7 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.adafruit.bluefruit.le.connect.R;
+import com.adafruit.bluefruit.le.connect.app.imagetransfer.ImageTransferFragment;
 import com.adafruit.bluefruit.le.connect.app.neopixel.NeopixelFragment;
 import com.adafruit.bluefruit.le.connect.ble.central.BlePeripheral;
 import com.adafruit.bluefruit.le.connect.ble.central.BlePeripheralBattery;
@@ -41,8 +42,8 @@ public class PeripheralModulesFragment extends ConnectedPeripheralFragment {
     private final static String TAG = PeripheralModulesFragment.class.getSimpleName();
 
     // Fragment parameters
-    public final static int CONNECTIONMODE_SINGLEPERIPHERAL = 0;
-    public final static int CONNECTIONMODE_MULTIPLEPERIPHERAL = 1;
+    private final static int CONNECTIONMODE_SINGLEPERIPHERAL = 0;
+    private final static int CONNECTIONMODE_MULTIPLEPERIPHERAL = 1;
 
     // Constants
     private final static int MODULE_INFO = 0;
@@ -63,7 +64,7 @@ public class PeripheralModulesFragment extends ConnectedPeripheralFragment {
     private ModulesAdapter mModulesAdapter;
 
     // region Fragment Lifecycle
-    public static PeripheralModulesFragment newInstance(@Nullable String singlePeripheralIdentifier) {      // if singlePeripheralIdentifier is null, uses multiconnect
+    public static PeripheralModulesFragment newInstance(@Nullable String singlePeripheralIdentifier) {      // if singlePeripheralIdentifier is null, uses multi-connect
         PeripheralModulesFragment fragment = new PeripheralModulesFragment();
         fragment.setArguments(createFragmentArgs(singlePeripheralIdentifier));
         return fragment;
@@ -74,7 +75,7 @@ public class PeripheralModulesFragment extends ConnectedPeripheralFragment {
     }
 
     @Override
-    public void onAttach(Context context) {
+    public void onAttach(@NonNull Context context) {
         super.onAttach(context);
 
         // This makes sure that the container activity has implemented
@@ -171,6 +172,16 @@ public class PeripheralModulesFragment extends ConnectedPeripheralFragment {
         for (BlePeripheralBattery blePeripheralBattery : mBatteryPeripherals) {
             blePeripheralBattery.stopReadingBatteryLevel(null);
         }
+    }
+
+
+    @Override
+    public void onDestroyView() {
+        super.onDestroyView();
+
+        // Null out references to views to avoid leaks when the fragment is added to the backstack: https://stackoverflow.com/questions/59503689/could-navigation-arch-component-create-a-false-positive-memory-leak/59504797#59504797
+        mRecyclerView = null;
+        mModulesAdapter = null;
     }
 
     // endregion

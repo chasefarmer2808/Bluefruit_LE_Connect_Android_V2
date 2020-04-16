@@ -1,16 +1,16 @@
 apply plugin: 'com.android.application'
 
 android {
-    compileSdkVersion 28
+    compileSdkVersion 29
     defaultConfig {
         applicationId "com.adafruit.bluefruit.le.connect"
-        minSdkVersion 21
-        targetSdkVersion 27
-        versionCode 33
-        versionName "3.1.0"
+        minSdkVersion 23
+        targetSdkVersion 29
+        versionCode 46
+        versionName "3.3.1"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables.useSupportLibrary = true
-        resValue "string", "app_name", "Bluefruit"
+        resValue "string", "app_name", "Bluefruit Connect"
     }
 
     compileOptions {
@@ -27,7 +27,7 @@ android {
             initWith debug
 
             applicationIdSuffix ".beta"
-            resValue "string", "app_name", "Bluefruit Beta"
+            resValue "string", "app_name", "BlueConnect Beta"
         }
 
         release {
@@ -46,28 +46,32 @@ dependencies {
 
     // Support library
     implementation 'androidx.legacy:legacy-support-v4:1.0.0'
-    implementation 'androidx.appcompat:appcompat:1.0.2'
-    implementation 'com.google.android.material:material:1.0.0'
-    implementation 'androidx.vectordrawable:vectordrawable:1.0.1'
-    implementation 'androidx.recyclerview:recyclerview:1.0.0'
+    implementation 'androidx.appcompat:appcompat:1.1.0'
+    implementation 'com.google.android.material:material:1.1.0'
+    implementation 'androidx.vectordrawable:vectordrawable:1.1.0'
+    implementation 'androidx.recyclerview:recyclerview:1.1.0'
     implementation 'androidx.percentlayout:percentlayout:1.0.0'
     implementation 'androidx.cardview:cardview:1.0.0'
 
     // Google Play Services
     implementation 'com.google.android.gms:play-services-base:17.1.0'
     implementation 'com.google.android.gms:play-services-location:17.0.0'
-    implementation 'com.google.android.gms:play-services-vision:18.0.0'
+    implementation 'com.google.android.gms:play-services-vision:19.0.0'
 
     // Needed to download files with SSL on Android 4.4
     implementation 'com.google.android.gms:play-services-auth:17.0.0'
 
     // Nordic
-    implementation 'no.nordicsemi.android.support.v18:scanner:1.4.0'
-    implementation 'no.nordicsemi.android:dfu:1.6.1'
+    implementation 'no.nordicsemi.android.support.v18:scanner:1.4.3'
+    implementation 'no.nordicsemi.android:dfu:1.9.1'
 
     //  Architecture Components
-    implementation 'androidx.lifecycle:lifecycle-extensions:2.0.0'
-    implementation 'androidx.lifecycle:lifecycle-common-java8:2.0.0'
+    def lifecycle_version = "2.2.0"
+    implementation "androidx.lifecycle:lifecycle-viewmodel:$lifecycle_version"
+    implementation "androidx.lifecycle:lifecycle-livedata:$lifecycle_version"
+
+    implementation "androidx.lifecycle:lifecycle-viewmodel-savedstate:$lifecycle_version"
+    implementation "androidx.lifecycle:lifecycle-common-java8:$lifecycle_version"
 
     // Mqtt
     implementation 'org.eclipse.paho:org.eclipse.paho.client.mqttv3:1.1.0'
@@ -82,9 +86,7 @@ dependencies {
     implementation 'com.larswerkman:HoloColorPicker:1.5'
 
     // LeakCanary
-    betaImplementation 'com.squareup.leakcanary:leakcanary-android:1.6.3'
-    debugImplementation 'com.squareup.leakcanary:leakcanary-android:1.6.3'
-    releaseImplementation 'com.squareup.leakcanary:leakcanary-android-no-op:1.6.3'
+    debugImplementation 'com.squareup.leakcanary:leakcanary-android:2.1'
 
     // FileProvider
     implementation 'com.commonsware.cwac:provider:0.5.1'

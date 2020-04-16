@@ -1,7 +1,6 @@
 package com.adafruit.bluefruit.le.connect.models;
 
 import android.app.Application;
-import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothGatt;
 import android.content.BroadcastReceiver;
 import android.content.Context;
@@ -10,6 +9,8 @@ import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.os.Handler;
 import android.os.Looper;
+import android.util.Log;
+
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.lifecycle.AndroidViewModel;
@@ -18,8 +19,6 @@ import androidx.lifecycle.MediatorLiveData;
 import androidx.lifecycle.MutableLiveData;
 import androidx.lifecycle.Transformations;
 import androidx.localbroadcastmanager.content.LocalBroadcastManager;
-
-import android.util.Log;
 
 import com.adafruit.bluefruit.le.connect.R;
 import com.adafruit.bluefruit.le.connect.ble.central.BlePeripheral;
@@ -78,9 +77,6 @@ public class ScannerViewModel extends AndroidViewModel implements BleScanner.Ble
         // Copy all existing results
         List<BlePeripheral> results = new ArrayList<>(input.blePeripherals);
 
-        // Sort devices alphabetically
-        Collections.sort(results, (o1, o2) -> getResultNameForOrdering(o1).compareToIgnoreCase(getResultNameForOrdering(o2)));
-
         // Apply filters
         if (filterData.isOnlyUartEnabled) {
             for (Iterator<BlePeripheral> it = results.iterator(); it.hasNext(); ) {
@@ -129,6 +125,10 @@ public class ScannerViewModel extends AndroidViewModel implements BleScanner.Ble
             }
         }
 
+        // Sort devices alphabetically
+        Collections.sort(results, (o1, o2) -> getResultNameForOrdering(o1).compareTo(getResultNameForOrdering(o2)));
+
+
         // Update related variables
         mNumPeripheralsFiltered.setValue(results.size());
         final int numPeripheralsFilteredOut = input.blePeripherals.size() - results.size();
@@ -153,7 +153,7 @@ public class ScannerViewModel extends AndroidViewModel implements BleScanner.Ble
     // endregion
 
     // region Setup
-    public ScannerViewModel(Application application) {
+    public ScannerViewModel(@NonNull Application application) {
         super(application);
 
         // Add broadcast receiver
@@ -470,11 +470,10 @@ public class ScannerViewModel extends AndroidViewModel implements BleScanner.Ble
     // region Utils
     private @NonNull
     String getResultNameForOrdering(BlePeripheral result) {
-        BluetoothDevice device = result.getDevice();
-        String name = device.getName();
+        String name = result.getName();
         if (name == null) {
-            String address = device.getAddress();
-            name = "~" + (address != null ? address : "");     // Prefix with symbol so all the unknowns are pushed to the bottom
+            String identifier = result.getIdentifier();
+            name = "~" + (identifier != null ? identifier : "");     // Prefix with symbol so all the unknowns are pushed to the bottom
         }
         return name;
     }
@@ -613,52 +612,58 @@ public class ScannerViewModel extends AndroidViewModel implements BleScanner.Ble
         public void onReceive(Context context, Intent intent) {
             final String action = intent.getAction();
             final String identifier = intent.getStringExtra(BlePeripheral.kExtra_deviceAddress);
-            final BlePeripheral blePeripheral = getPeripheralWithIdentifier(identifier);
 
-            if (blePeripheral != null) {
-                if (BlePeripheral.kBlePeripheral_OnConnected.equals(action)) {
-                    // If connected, start service discovery
-                    blePeripheral.discoverServices(status -> {
-                        final Handler mainHandler = new Handler(Looper.getMainLooper());
-                        final Runnable discoveredServicesRunnable = () -> {
-                            mPeripheralsDiscoveringConnectingOrDiscoveringServices.remove(identifier);          // Connection setup finished
-                            Log.d(TAG, "kBlePeripheral_OnConnected ConnectingOrDiscovering: " + Arrays.toString(mPeripheralsDiscoveringConnectingOrDiscoveringServices.toArray()));
-                            if (status == BluetoothGatt.GATT_SUCCESS) {
-                                // Discovery finished
-                                mBlePeripheralDiscoveredServices.setValue(blePeripheral);
+            if (identifier != null) {
+                final BlePeripheral blePeripheral = getPeripheralWithIdentifier(identifier);
 
-                            } else {
-                                final String message = LocalizationManager.getInstance().getString(getApplication(), "peripheraldetails_errordiscoveringservices");
-                                blePeripheral.disconnect();
+                if (blePeripheral != null) {
+                    if (BlePeripheral.kBlePeripheral_OnConnected.equals(action)) {
+                        // If connected, start service discovery
+                        blePeripheral.discoverServices(status -> {
+                            final Handler mainHandler = new Handler(Looper.getMainLooper());
+                            final Runnable discoveredServicesRunnable = () -> {
+                                mPeripheralsDiscoveringConnectingOrDiscoveringServices.remove(identifier);          // Connection setup finished
+                                Log.d(TAG, "kBlePeripheral_OnConnected ConnectingOrDiscovering: " + Arrays.toString(mPeripheralsDiscoveringConnectingOrDiscoveringServices.toArray()));
+                                if (status == BluetoothGatt.GATT_SUCCESS) {
+                                    // Discovery finished
+                                    mBlePeripheralDiscoveredServices.setValue(blePeripheral);
+
+                                } else {
+                                    final String message = LocalizationManager.getInstance().getString(getApplication(), "peripheraldetails_errordiscoveringservices");
+                                    blePeripheral.disconnect();
+                                    mBlePeripheralsConnectionErrorMessage.setValue(message);
+                                }
+                            };
+                            mainHandler.post(discoveredServicesRunnable);
+                        });
+                    } else if (BlePeripheral.kBlePeripheral_OnDisconnected.equals(action)) {
+                        Log.d(TAG, "kBlePeripheral_OnDisconnected ConnectingOrDiscovering: " + Arrays.toString(mPeripheralsDiscoveringConnectingOrDiscoveringServices.toArray()));
+                        if (mPeripheralsDiscoveringConnectingOrDiscoveringServices.contains(identifier)) {          // If connection setup was still ongoing
+                            final boolean isExpected = intent.getStringExtra(BlePeripheral.kExtra_expectedDisconnect) != null;      // If parameter kExtra_expectedDisconnect is non-null, the disconnect was expected (and no message errors are displayed to the user)
+                            Log.d(TAG, "Expected disconnect: " + isExpected);
+                            if (!isExpected) {
+                                final String message = LocalizationManager.getInstance().getString(getApplication(), "bluetooth_connecting_error");
                                 mBlePeripheralsConnectionErrorMessage.setValue(message);
                             }
-                        };
-                        mainHandler.post(discoveredServicesRunnable);
-                    });
-                } else if (BlePeripheral.kBlePeripheral_OnDisconnected.equals(action)) {
-                    Log.d(TAG, "kBlePeripheral_OnDisconnected ConnectingOrDiscovering: " + Arrays.toString(mPeripheralsDiscoveringConnectingOrDiscoveringServices.toArray()));
-                    if (mPeripheralsDiscoveringConnectingOrDiscoveringServices.contains(identifier)) {          // If connection setup was still ongoing
-                        final boolean isExpected = intent.getStringExtra(BlePeripheral.kExtra_expectedDisconnect) != null;      // If parameter kExtra_expectedDisconnect is non-null, the disconnect was expected (and no message errors are displayed to the user)
-                        Log.d(TAG, "Expected disconnect: " + isExpected);
-                        if (!isExpected) {
-                            final String message = LocalizationManager.getInstance().getString(getApplication(), "bluetooth_connecting_error");
-                            mBlePeripheralsConnectionErrorMessage.setValue(message);
+                            mPeripheralsDiscoveringConnectingOrDiscoveringServices.remove(identifier);
                         }
-                        mPeripheralsDiscoveringConnectingOrDiscoveringServices.remove(identifier);
+                    } else if (BlePeripheral.kBlePeripheral_OnConnecting.equals(action)) {
+                        if (!mPeripheralsDiscoveringConnectingOrDiscoveringServices.contains(identifier)) {         // peripheral starts connection setup
+                            mPeripheralsDiscoveringConnectingOrDiscoveringServices.add(identifier);
+                        }
+                        Log.d(TAG, "kBlePeripheral_OnConnecting ConnectingOrDiscovering: " + Arrays.toString(mPeripheralsDiscoveringConnectingOrDiscoveringServices.toArray()));
                     }
-                } else if (BlePeripheral.kBlePeripheral_OnConnecting.equals(action)) {
-                    if (!mPeripheralsDiscoveringConnectingOrDiscoveringServices.contains(identifier)) {         // peripheral starts connection setup
-                        mPeripheralsDiscoveringConnectingOrDiscoveringServices.add(identifier);
-                    }
-                    Log.d(TAG, "kBlePeripheral_OnConnecting ConnectingOrDiscovering: " + Arrays.toString(mPeripheralsDiscoveringConnectingOrDiscoveringServices.toArray()));
+
+                    mBlePeripheralsConnectionChanged.setValue(blePeripheral);
+                    final int numDevicesConnected = mScanner.getConnectedPeripherals().size();
+                    mNumDevicesConnected.setValue(numDevicesConnected);
+
+                } else {
+                    Log.w(TAG, "ScannerViewModel mGattUpdateReceiver with null peripheral");
                 }
-
-                mBlePeripheralsConnectionChanged.setValue(blePeripheral);
-                final int numDevicesConnected = mScanner.getConnectedPeripherals().size();
-                mNumDevicesConnected.setValue(numDevicesConnected);
-
-            } else {
-                Log.w(TAG, "ScannerViewModel mGattUpdateReceiver with null peripheral");
+            }
+            else {
+                Log.w(TAG, "ScannerViewModel mGattUpdateReceiver with null identifier");
             }
         }
     };

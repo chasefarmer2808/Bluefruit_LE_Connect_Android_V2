@@ -9,18 +9,6 @@ import android.graphics.drawable.Drawable;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
-import androidx.annotation.MainThread;
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
-import androidx.core.content.ContextCompat;
-import androidx.fragment.app.FragmentActivity;
-import androidx.fragment.app.FragmentManager;
-import androidx.fragment.app.FragmentTransaction;
-import androidx.recyclerview.widget.DividerItemDecoration;
-import androidx.recyclerview.widget.LinearLayoutManager;
-import androidx.recyclerview.widget.RecyclerView;
-import androidx.recyclerview.widget.SimpleItemAnimator;
-
 import android.text.Spannable;
 import android.text.SpannableString;
 import android.text.SpannableStringBuilder;
@@ -39,6 +27,18 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.Spinner;
 import android.widget.TextView;
+
+import androidx.annotation.MainThread;
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+import androidx.core.content.ContextCompat;
+import androidx.fragment.app.FragmentActivity;
+import androidx.fragment.app.FragmentManager;
+import androidx.fragment.app.FragmentTransaction;
+import androidx.recyclerview.widget.DividerItemDecoration;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
+import androidx.recyclerview.widget.SimpleItemAnimator;
 
 import com.adafruit.bluefruit.le.connect.R;
 import com.adafruit.bluefruit.le.connect.ble.BleUtils;
@@ -148,7 +148,10 @@ public abstract class UartBaseFragment extends ConnectedPeripheralFragment imple
             //layoutManager.setStackFromEnd(true);        // Scroll to bottom when adding elements
             mBufferRecylerView.setLayoutManager(layoutManager);
 
-            ((SimpleItemAnimator) mBufferRecylerView.getItemAnimator()).setSupportsChangeAnimations(false);         // Disable update animation
+            SimpleItemAnimator itemAnimator = (SimpleItemAnimator) mBufferRecylerView.getItemAnimator();
+            if (itemAnimator != null) {
+                itemAnimator.setSupportsChangeAnimations(false);         // Disable update animation
+            }
             mBufferItemAdapter = new TimestampItemAdapter(context);            // Adapter
 
             mBufferRecylerView.setAdapter(mBufferItemAdapter);
@@ -291,7 +294,7 @@ public abstract class UartBaseFragment extends ConnectedPeripheralFragment imple
     }
 
     @Override
-    public void onCreateOptionsMenu(Menu menu, MenuInflater inflater) {
+    public void onCreateOptionsMenu(@NonNull Menu menu, @NonNull MenuInflater inflater) {
         super.onCreateOptionsMenu(menu, inflater);
         inflater.inflate(R.menu.menu_uart, menu);
 
@@ -368,7 +371,7 @@ public abstract class UartBaseFragment extends ConnectedPeripheralFragment imple
     }
 
     @Override
-    public boolean onOptionsItemSelected(MenuItem item) {
+    public boolean onOptionsItemSelected(@NonNull MenuItem item) {
         FragmentActivity activity = getActivity();
         if (activity == null) {
             return super.onOptionsItemSelected(item);
@@ -377,25 +380,21 @@ public abstract class UartBaseFragment extends ConnectedPeripheralFragment imple
         switch (item.getItemId()) {
             case R.id.action_help: {
                 FragmentManager fragmentManager = activity.getSupportFragmentManager();
-                if (fragmentManager != null) {
-                    CommonHelpFragment helpFragment = CommonHelpFragment.newInstance(getString(R.string.uart_help_title), getString(R.string.uart_help_text_android));
-                    FragmentTransaction fragmentTransaction = fragmentManager.beginTransaction()
-                            .replace(R.id.contentLayout, helpFragment, "Help");
-                    fragmentTransaction.addToBackStack(null);
-                    fragmentTransaction.commit();
-                }
+                CommonHelpFragment helpFragment = CommonHelpFragment.newInstance(getString(R.string.uart_help_title), getString(R.string.uart_help_text_android));
+                FragmentTransaction fragmentTransaction = fragmentManager.beginTransaction()
+                        .replace(R.id.contentLayout, helpFragment, "Help");
+                fragmentTransaction.addToBackStack(null);
+                fragmentTransaction.commit();
                 return true;
             }
 
             case R.id.action_mqttsettings: {
                 FragmentManager fragmentManager = activity.getSupportFragmentManager();
-                if (fragmentManager != null) {
-                    MqttSettingsFragment mqttSettingsFragment = MqttSettingsFragment.newInstance();
-                    FragmentTransaction fragmentTransaction = fragmentManager.beginTransaction()
-                            .replace(R.id.contentLayout, mqttSettingsFragment, "MqttSettings");
-                    fragmentTransaction.addToBackStack(null);
-                    fragmentTransaction.commit();
-                }
+                MqttSettingsFragment mqttSettingsFragment = MqttSettingsFragment.newInstance();
+                FragmentTransaction fragmentTransaction = fragmentManager.beginTransaction()
+                        .replace(R.id.contentLayout, mqttSettingsFragment, "MqttSettings");
+                fragmentTransaction.addToBackStack(null);
+                fragmentTransaction.commit();
                 return true;
             }
 
@@ -672,6 +671,15 @@ public abstract class UartBaseFragment extends ConnectedPeripheralFragment imple
         if (packets.isEmpty()) {
             showDialogWarningNoTextToExport();
         } else {
+
+            final int maxPacketsToExport = 1000;        // exportText uses a parcelable to send the text. If the text is too big a TransactionTooLargeException is thrown
+            final int numPacketsToExport = Math.min(maxPacketsToExport, packets.size());
+            List<UartPacket> packetsToExport = new ArrayList<>(numPacketsToExport);
+            for (int i = Math.max(0, packets.size() - numPacketsToExport); i < packets.size(); i++) {
+                UartPacket packet = packets.get(i);
+                packetsToExport.add(new UartPacket(packet));
+            }
+
             // Export format dialog
             AlertDialog.Builder builder = new AlertDialog.Builder(getContext());
             builder.setTitle(R.string.uart_export_format_subtitle);
@@ -680,17 +688,17 @@ public abstract class UartBaseFragment extends ConnectedPeripheralFragment imple
             builder.setItems(formats, (dialog, which) -> {
                 switch (which) {
                     case 0: { // txt
-                        String result = UartDataExport.packetsAsText(packets, mShowDataInHexFormat);
+                        String result = UartDataExport.packetsAsText(packetsToExport, mShowDataInHexFormat);
                         exportText(result);
                         break;
                     }
                     case 1: { // csv
-                        String result = UartDataExport.packetsAsCsv(packets, mShowDataInHexFormat);
+                        String result = UartDataExport.packetsAsCsv(packetsToExport, mShowDataInHexFormat);
                         exportText(result);
                         break;
                     }
                     case 2: { // json
-                        String result = UartDataExport.packetsAsJson(packets, mShowDataInHexFormat);
+                        String result = UartDataExport.packetsAsJson(packetsToExport, mShowDataInHexFormat);
                         exportText(result);
                         break;
                     }
@@ -703,6 +711,7 @@ public abstract class UartBaseFragment extends ConnectedPeripheralFragment imple
     }
 
     private void exportText(@Nullable String text) {
+        // Note: text is sent in a parcelable. It shouldn't be too big to avoid TransactionTooLargeException
         if (text != null && !text.isEmpty()) {
             Intent sendIntent = new Intent();
             sendIntent.setAction(Intent.ACTION_SEND);

@@ -40,7 +40,7 @@ import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentActivity;
 import androidx.fragment.app.FragmentManager;
-import androidx.lifecycle.ViewModelProviders;
+import androidx.lifecycle.ViewModelProvider;
 import androidx.recyclerview.widget.DividerItemDecoration;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
@@ -51,7 +51,6 @@ import com.adafruit.bluefruit.le.connect.R;
 import com.adafruit.bluefruit.le.connect.ble.BleUtils;
 import com.adafruit.bluefruit.le.connect.ble.central.BleManager;
 import com.adafruit.bluefruit.le.connect.ble.central.BlePeripheral;
-import com.adafruit.bluefruit.le.connect.dfu.DfuUpdater;
 import com.adafruit.bluefruit.le.connect.dfu.ReleasesParser;
 import com.adafruit.bluefruit.le.connect.models.DfuViewModel;
 import com.adafruit.bluefruit.le.connect.models.ScannerViewModel;
@@ -115,7 +114,7 @@ public class ScannerFragment extends Fragment implements ScannerStatusFragmentDi
     }
 
     @Override
-    public void onAttach(Context context) {
+    public void onAttach(@NonNull Context context) {
         super.onAttach(context);
 
         // This makes sure that the container activity has implemented
@@ -361,9 +360,9 @@ public class ScannerFragment extends Fragment implements ScannerStatusFragmentDi
         // ViewModel
         FragmentActivity activity = getActivity();
         if (activity != null) {
-            mDfuViewModel = ViewModelProviders.of(activity).get(DfuViewModel.class);
+            mDfuViewModel = new ViewModelProvider(activity).get(DfuViewModel.class);
+            mScannerViewModel = new ViewModelProvider(this, new ViewModelProvider.AndroidViewModelFactory(activity.getApplication())).get(ScannerViewModel.class);
         }
-        mScannerViewModel = ViewModelProviders.of(this).get(ScannerViewModel.class);
 
         // Scan results
         mScannerViewModel.getFilteredBlePeripherals().observe(this, blePeripherals -> mBlePeripheralsAdapter.setBlePeripherals(blePeripherals));
@@ -423,28 +422,34 @@ public class ScannerFragment extends Fragment implements ScannerStatusFragmentDi
 
         // Connection
         mScannerViewModel.getNumDevicesConnected().observe(this, numConnectedDevices -> {
-            final int numDevices = numConnectedDevices != null ? numConnectedDevices : 0;
-            final String message = String.format(Locale.ENGLISH, LocalizationManager.getInstance().getString(getContext(), numDevices == 1 ? "multiconnect_connecteddevices_single_format" : "multiconnect_connecteddevices_multiple_format"), numConnectedDevices);
-            mMultiConnectConnectedDevicesTextView.setText(message);
-            mMultiConnectStartButton.setEnabled(numDevices >= 2);
+            Context context = getContext();
+            if (context != null) {
+                final int numDevices = numConnectedDevices != null ? numConnectedDevices : 0;
+                final String message = String.format(Locale.ENGLISH, LocalizationManager.getInstance().getString(context, numDevices == 1 ? "multiconnect_connecteddevices_single_format" : "multiconnect_connecteddevices_multiple_format"), numConnectedDevices);
+                mMultiConnectConnectedDevicesTextView.setText(message);
+                mMultiConnectStartButton.setEnabled(numDevices >= 2);
+            }
         });
 
         // Filtered-out peripherals
         mScannerViewModel.getNumPeripheralsFilteredOut().observe(this, numPeripheralsFilteredOutInteger -> {
-            final int numPeripheralsFilteredOut = numPeripheralsFilteredOutInteger != null ? numPeripheralsFilteredOutInteger : 0;
-            Integer numPeripheralsFilteredInteger = mScannerViewModel.getNumPeripheralsFiltered().getValue();
-            final int numPeripheralsFiltered = numPeripheralsFilteredInteger != null ? numPeripheralsFilteredInteger : 0;
+            Context context = getContext();
+            if (context != null) {
+                final int numPeripheralsFilteredOut = numPeripheralsFilteredOutInteger != null ? numPeripheralsFilteredOutInteger : 0;
+                Integer numPeripheralsFilteredInteger = mScannerViewModel.getNumPeripheralsFiltered().getValue();
+                final int numPeripheralsFiltered = numPeripheralsFilteredInteger != null ? numPeripheralsFilteredInteger : 0;
 
-            boolean isFilteredPeripheralCountLabelHidden = numPeripheralsFiltered > 0 || numPeripheralsFilteredOut == 0;
-            mFilteredPeripheralsCountTextView.setVisibility(isFilteredPeripheralCountLabelHidden ? View.GONE : View.VISIBLE);
-            String message = String.format(Locale.ENGLISH, LocalizationManager.getInstance().getString(getContext(), numPeripheralsFilteredOut == 1 ? "scanner_filteredoutinfo_single_format" : "scanner_filteredoutinfo_multiple_format"), numPeripheralsFilteredOut);
-            mFilteredPeripheralsCountTextView.setText(message);
+                boolean isFilteredPeripheralCountLabelHidden = numPeripheralsFiltered > 0 || numPeripheralsFilteredOut == 0;
+                mFilteredPeripheralsCountTextView.setVisibility(isFilteredPeripheralCountLabelHidden ? View.GONE : View.VISIBLE);
+                String message = String.format(Locale.ENGLISH, LocalizationManager.getInstance().getString(context, numPeripheralsFilteredOut == 1 ? "scanner_filteredoutinfo_single_format" : "scanner_filteredoutinfo_multiple_format"), numPeripheralsFilteredOut);
+                mFilteredPeripheralsCountTextView.setText(message);
+            }
         });
 
         // Dfu Update
         mDfuViewModel.getDfuCheckResult().observe(this, dfuCheckResult -> {
             if (dfuCheckResult != null) {
-                onDfuUpdateCheckResultReceived(dfuCheckResult.blePeripheral, dfuCheckResult.isUpdateAvailable, dfuCheckResult.dfuInfo, dfuCheckResult.firmwareInfo);
+                onDfuUpdateCheckResultReceived(dfuCheckResult.blePeripheral, dfuCheckResult.isUpdateAvailable, dfuCheckResult.firmwareInfo);
             }
         });
     }
@@ -455,7 +460,7 @@ public class ScannerFragment extends Fragment implements ScannerStatusFragmentDi
 
         FragmentActivity activity = getActivity();
         if (activity != null) {
-            activity.getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_PAN);
+            activity.getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_PAN | WindowManager.LayoutParams.SOFT_INPUT_STATE_HIDDEN);
 
             // Automatically starts scanning
             boolean isDfuInProgress = activity instanceof MainActivity && ((MainActivity) activity).isIsDfuInProgress();
@@ -475,13 +480,39 @@ public class ScannerFragment extends Fragment implements ScannerStatusFragmentDi
     }
 
     @Override
+    public void onDestroyView() {
+        super.onDestroyView();
+
+        // Null out references to views to avoid leaks when the fragment is added to the backstack: https://stackoverflow.com/questions/59503689/could-navigation-arch-component-create-a-false-positive-memory-leak/59504797#59504797
+        mBlePeripheralsAdapter = null;
+        mSwipeRefreshLayout = null;
+        mFiltersPanelView = null;
+        mFiltersExpandImageView = null;
+        mFiltersClearButton = null;
+        mFiltersTitleTextView = null;
+        mFiltersRssiSeekBar = null;
+        mFiltersRssiValueTextView = null;
+        mFiltersUnnamedCheckBox = null;
+        mFiltersUartCheckBox = null;
+        mFilteredPeripheralsCountTextView = null;
+
+        mMultiConnectPanelView = null;
+        mMultiConnectExpandImageView = null;
+        mMultiConnectCheckBox = null;
+        mMultiConnectConnectedDevicesTextView = null;
+        mMultiConnectStartButton = null;
+
+        removeConnectionStateDialog();
+    }
+
+    @Override
     public void onDestroy() {
         mScannerViewModel.saveFilters();
         super.onDestroy();
     }
 
     @Override
-    public void onCreateOptionsMenu(Menu menu, MenuInflater inflater) {
+    public void onCreateOptionsMenu(@NonNull Menu menu, @NonNull MenuInflater inflater) {
         super.onCreateOptionsMenu(menu, inflater);
         inflater.inflate(R.menu.menu_centralmode, menu);
     }
@@ -489,11 +520,11 @@ public class ScannerFragment extends Fragment implements ScannerStatusFragmentDi
     // endregion
 
     // region Actions
-    public void startScanning() {
+    void startScanning() {
         mScannerViewModel.start();
     }
 
-    public void disconnectAllPeripherals() {
+    void disconnectAllPeripherals() {
         mScannerViewModel.disconnectAllPeripherals();
     }
 
@@ -664,7 +695,7 @@ public class ScannerFragment extends Fragment implements ScannerStatusFragmentDi
 
     // region Dfu
     @MainThread
-    private void onDfuUpdateCheckResultReceived(@NonNull BlePeripheral blePeripheral, boolean isUpdateAvailable, @NonNull DfuUpdater.DeviceDfuInfo deviceDfuInfo, @Nullable ReleasesParser.FirmwareInfo latestRelease) {
+    private void onDfuUpdateCheckResultReceived(@NonNull BlePeripheral blePeripheral, boolean isUpdateAvailable, @Nullable ReleasesParser.FirmwareInfo latestRelease) {
         Log.d(TAG, "Update available: " + isUpdateAvailable);
         removeConnectionStateDialog();
 
@@ -675,9 +706,7 @@ public class ScannerFragment extends Fragment implements ScannerStatusFragmentDi
             new AlertDialog.Builder(context)
                     .setTitle(R.string.autoupdate_title)
                     .setMessage(message)
-                    .setPositiveButton(R.string.autoupdate_startupdate, (dialog, which) -> {
-                        startFirmwareUpdate(blePeripheral, latestRelease);
-                    })
+                    .setPositiveButton(R.string.autoupdate_startupdate, (dialog, which) -> startFirmwareUpdate(blePeripheral, latestRelease))
                     .setNeutralButton(R.string.autoupdate_later, (dialog, which) -> {
                         if (mListener != null) {
                             mListener.startPeripheralModules(blePeripheral.getIdentifier());

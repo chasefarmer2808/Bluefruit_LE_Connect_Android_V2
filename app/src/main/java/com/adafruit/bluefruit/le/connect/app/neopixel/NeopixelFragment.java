@@ -6,18 +6,9 @@ import android.content.Context;
 import android.content.SharedPreferences;
 import android.graphics.Color;
 import android.graphics.drawable.GradientDrawable;
-import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
-import androidx.fragment.app.FragmentActivity;
-import androidx.fragment.app.FragmentManager;
-import androidx.fragment.app.FragmentTransaction;
-import androidx.recyclerview.widget.LinearLayoutManager;
-import androidx.recyclerview.widget.RecyclerView;
-
 import android.util.Log;
 import android.view.GestureDetector;
 import android.view.LayoutInflater;
@@ -33,6 +24,14 @@ import android.widget.ImageButton;
 import android.widget.RelativeLayout;
 import android.widget.SeekBar;
 import android.widget.TextView;
+
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+import androidx.fragment.app.FragmentActivity;
+import androidx.fragment.app.FragmentManager;
+import androidx.fragment.app.FragmentTransaction;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
 
 import com.adafruit.bluefruit.le.connect.BuildConfig;
 import com.adafruit.bluefruit.le.connect.R;
@@ -60,9 +59,18 @@ public class NeopixelFragment extends ConnectedPeripheralFragment implements Neo
     // Log
     private final static String TAG = NeopixelFragment.class.getSimpleName();
 
+    // Config
+    private final static NeopixelComponents kDefaultComponents = new NeopixelComponents(BuildConfig.DEBUG ? NeopixelComponents.kComponents_grbw : NeopixelComponents.kComponents_grb);
+
     // Constants
     private final static String kPreferences = "NeopixelActivity_prefs";
-    private final static String kPreferences_showSketchTooltip = "showSketchTooltip";
+    private final static String kPreferences_isSketchTooltipEnabled = "showSketchTooltip";
+    private final static String kPreferences_isUsingStandardBoards = "isUsingStandardBoards";
+    private final static String kPreferences_standardBoardIndex = "standardBoardIndex";
+    private final static String kPreferences_lineBoardLength = "lineBoardLength";
+    private final static String kPreferences_components = "components";
+    private final static String kPreferences_isUsing400Hz = "isUsing400Hz";
+
     private final static String kSketchVersion = "Neopixel v2.";
 
     // Config
@@ -87,8 +95,7 @@ public class NeopixelFragment extends ConnectedPeripheralFragment implements Neo
     private UartPacketManager mUartManager;
     private Board mBoard;                   // The current connected board. Is null if not connected to a board
     private Board mLastSelectedBoard;       // Board selected even if it was not connected
-    private NeopixelComponents mComponents = new NeopixelComponents(BuildConfig.DEBUG ? NeopixelComponents.kComponents_grbw : NeopixelComponents.kComponents_grb);
-    private boolean mIs400HzEnabled = false;
+    private NeopixelComponents mComponents;
     private BlePeripheralUart mBlePeripheralUart;
     private List<Integer> mBoardCachedColors;
 
@@ -138,9 +145,7 @@ public class NeopixelFragment extends ConnectedPeripheralFragment implements Neo
         // UI
         mStatusTextView = view.findViewById(R.id.statusTextView);
         mColorPickerWComponentView = view.findViewById(R.id.colorPickerWComponentView);
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-            mColorPickerWComponentView.setElevation(1000);          // Is a view that should appear above the button. Take into account that buttons have elevation from API21
-        }
+        mColorPickerWComponentView.setElevation(1000);          // Is a view that should appear above the button. Take into account that buttons have elevation from API21
         mConnectButton = view.findViewById(R.id.connectButton);
         mConnectButton.setEnabled(false);
         mConnectButton.setOnClickListener(view12 -> onClickConnect());
@@ -153,11 +158,9 @@ public class NeopixelFragment extends ConnectedPeripheralFragment implements Neo
             FragmentActivity activity = getActivity();
             if (activity != null) {
                 FragmentManager fragmentManager = activity.getSupportFragmentManager();
-                if (fragmentManager != null) {
-                    NeopixelColorPickerFragment colorPickerFragment = NeopixelColorPickerFragment.newInstance(mCurrentColor, mColorW, mComponents.getNumComponents() == 4);
-                    colorPickerFragment.setTargetFragment(this, 0);
-                    colorPickerFragment.show(fragmentManager, "ColorPicker");
-                }
+                NeopixelColorPickerFragment colorPickerFragment = NeopixelColorPickerFragment.newInstance(mCurrentColor, mColorW, mComponents.getNumComponents() == 4);
+                colorPickerFragment.setTargetFragment(this, 0);
+                colorPickerFragment.show(fragmentManager, "ColorPicker");
             }
         });
 
@@ -206,7 +209,7 @@ public class NeopixelFragment extends ConnectedPeripheralFragment implements Neo
 
             // Tooltip
             final SharedPreferences preferences = context.getSharedPreferences(kPreferences, Context.MODE_PRIVATE);
-            boolean showSketchTooltip = preferences.getBoolean(kPreferences_showSketchTooltip, true);
+            boolean showSketchTooltip = preferences.getBoolean(kPreferences_isSketchTooltipEnabled, true);
 
             if (!isSketchTooltipAlreadyShown && showSketchTooltip) {
 
@@ -215,34 +218,46 @@ public class NeopixelFragment extends ConnectedPeripheralFragment implements Neo
                         .setPositiveButton(android.R.string.ok, null)
                         .setNegativeButton(R.string.dialog_dontshowagain, (dialog, which) -> {
                             SharedPreferences.Editor editor = preferences.edit();
-                            editor.putBoolean(kPreferences_showSketchTooltip, false);
+                            editor.putBoolean(kPreferences_isSketchTooltipEnabled, false);
                             editor.apply();
                         });
                 builder.create().show();
 
                 isSketchTooltipAlreadyShown = true;
             }
+
+            // Data
+            final byte componentsValue = (byte) preferences.getInt(kPreferences_components, NeopixelComponents.kComponents_grb);
+            mComponents = NeopixelComponents.componentFromValue(componentsValue);
+            if (mComponents == null) {
+                mComponents = kDefaultComponents;
+            }
+
         }
 
         // Setup
-        if (context != null && mUartManager == null) {      // Don't setup if already init (because fragment was recreated)
+        if (context != null) {
             // UartManager
             mUartManager = new UartPacketManager(context, null, false, null);
             start();
         }
 
+
         updatePickerColorButton(false);
     }
 
     @Override
-    public void onDestroy() {
-        super.onDestroy();
+    public void onDestroyView() {
+        super.onDestroyView();
 
+        // Board needs to be recreated when the view is recreated, so stop and free uartManager
         stop();
+        mUartManager = null;
     }
 
+
     @Override
-    public void onCreateOptionsMenu(Menu menu, MenuInflater inflater) {
+    public void onCreateOptionsMenu(@NonNull Menu menu, @NonNull MenuInflater inflater) {
         super.onCreateOptionsMenu(menu, inflater);
         inflater.inflate(R.menu.menu_neopixel, menu);
     }
@@ -255,36 +270,31 @@ public class NeopixelFragment extends ConnectedPeripheralFragment implements Neo
             case R.id.action_boardSelector:
                 if (activity != null) {
                     FragmentManager fragmentManager = activity.getSupportFragmentManager();
-                    if (fragmentManager != null) {
-                        NeopixelBoardSelectorFragment boardSelectorFragment = NeopixelBoardSelectorFragment.newInstance();
-                        boardSelectorFragment.setTargetFragment(this, 0);
-                        boardSelectorFragment.show(fragmentManager, "BoardSelector");
-                    }
+                    NeopixelBoardSelectorFragment boardSelectorFragment = NeopixelBoardSelectorFragment.newInstance();
+                    boardSelectorFragment.setTargetFragment(this, 0);
+                    boardSelectorFragment.show(fragmentManager, "BoardSelector");
                 }
                 return true;
 
             case R.id.action_boardComponentsSelector:
                 if (activity != null) {
+
                     FragmentManager fragmentManager = activity.getSupportFragmentManager();
-                    if (fragmentManager != null) {
-                        NeopixelComponentSelectorFragment boardComponentSelectorFragment = NeopixelComponentSelectorFragment.newInstance(mComponents.getType(), mIs400HzEnabled);
-                        boardComponentSelectorFragment.setTargetFragment(this, 0);
-                        boardComponentSelectorFragment.show(fragmentManager, "BoardComponentSelector");
-                    }
+                    NeopixelComponentSelectorFragment boardComponentSelectorFragment = NeopixelComponentSelectorFragment.newInstance(mComponents.getType(), is400khzEnabled());
+                    boardComponentSelectorFragment.setTargetFragment(this, 0);
+                    boardComponentSelectorFragment.show(fragmentManager, "BoardComponentSelector");
                 }
                 return true;
 
             case R.id.action_help:
                 if (activity != null) {
                     FragmentManager fragmentManager = activity.getSupportFragmentManager();
-                    if (fragmentManager != null) {
-                        CommonHelpFragment helpFragment = CommonHelpFragment.newInstance(getString(R.string.neopixel_help_title), getString(R.string.neopixel_help_text));
-                        FragmentTransaction fragmentTransaction = fragmentManager.beginTransaction()
-                                .setCustomAnimations(R.anim.slide_in_left, R.anim.slide_out_right, R.anim.slide_in_right, R.anim.slide_out_left)
-                                .replace(R.id.contentLayout, helpFragment, "Help");
-                        fragmentTransaction.addToBackStack(null);
-                        fragmentTransaction.commit();
-                    }
+                    CommonHelpFragment helpFragment = CommonHelpFragment.newInstance(getString(R.string.neopixel_help_title), getString(R.string.neopixel_help_text));
+                    FragmentTransaction fragmentTransaction = fragmentManager.beginTransaction()
+                            .setCustomAnimations(R.anim.slide_in_left, R.anim.slide_out_right, R.anim.slide_in_right, R.anim.slide_out_left)
+                            .replace(R.id.contentLayout, helpFragment, "Help");
+                    fragmentTransaction.addToBackStack(null);
+                    fragmentTransaction.commit();
                 }
                 return true;
 
@@ -310,10 +320,19 @@ public class NeopixelFragment extends ConnectedPeripheralFragment implements Neo
                     mConnectButton.setEnabled(true);
 
                     // Setup
-                    Board board = new Board(context, 0);
-                    changeComponents(mComponents, mIs400HzEnabled);
+                    final SharedPreferences preferences = context.getSharedPreferences(kPreferences, Context.MODE_PRIVATE);
+                    final boolean isUsingStandardBoards = preferences.getBoolean(kPreferences_isUsingStandardBoards, true);
+                    Board board;
+                    if (isUsingStandardBoards) {
+                        final int standardBoardIndex = preferences.getInt(kPreferences_standardBoardIndex, 0);
+                        board = new Board(context, standardBoardIndex);
+                    } else {
+                        final int lineBoardLength = preferences.getInt(kPreferences_lineBoardLength, 8);
+                        board = createLineBoard(lineBoardLength);
+                    }
+
+                    changeComponents(mComponents, is400khzEnabled());
                     createBoardUI(board);
-                    //restoreCachedBoardColors();
                     connectNeopixel(board);
                 }
 
@@ -353,9 +372,42 @@ public class NeopixelFragment extends ConnectedPeripheralFragment implements Neo
         return mBoard != null;
     }
 
-    private void changeComponents(NeopixelComponents components, boolean is400HkzEnabled) {
+    private boolean is400khzEnabled() {
+        boolean result = false;
+
+        FragmentActivity activity = getActivity();
+        if (activity != null) {
+            final SharedPreferences preferences = activity.getSharedPreferences(kPreferences, Context.MODE_PRIVATE);
+            result = preferences.getBoolean(kPreferences_isUsing400Hz, false);
+
+        }
+        return result;
+    }
+
+    private void setIs400khzEnabled(boolean enabled) {
+        FragmentActivity activity = getActivity();
+        if (activity != null) {
+            final SharedPreferences preferences = activity.getSharedPreferences(kPreferences, Context.MODE_PRIVATE);
+            SharedPreferences.Editor editor = preferences.edit();
+            editor.putBoolean(kPreferences_isUsing400Hz, enabled);
+            editor.apply();
+        }
+    }
+
+    private void setAndSaveComponents(NeopixelComponents components) {
         mComponents = components;
-        mIs400HzEnabled = is400HkzEnabled;
+        FragmentActivity activity = getActivity();
+        if (activity != null) {
+            final SharedPreferences preferences = activity.getSharedPreferences(kPreferences, Context.MODE_PRIVATE);
+            SharedPreferences.Editor editor = preferences.edit();
+            editor.putInt(kPreferences_components, components.getComponentValue());
+            editor.apply();
+        }
+    }
+
+    private void changeComponents(NeopixelComponents components, boolean is400HkzEnabled) {
+        setAndSaveComponents(components);
+        setIs400khzEnabled(is400HkzEnabled);
         final int numComponents = components.getNumComponents();
         mColorPickerWComponentView.setVisibility(numComponents == 4 ? View.VISIBLE : View.GONE);
     }
@@ -378,14 +430,12 @@ public class NeopixelFragment extends ConnectedPeripheralFragment implements Neo
 
         checkNeopixelSketch(isDetected -> {
             if (isDetected) {
-                setupNeopixel(board, mComponents, mIs400HzEnabled, success -> {
-                    mMainHandler.post(() -> {
-                        if (success) {
-                            onClickClear();
-                        }
-                        updateStatusUI(false);
-                    });
-                });
+                setupNeopixel(board, mComponents, is400khzEnabled(), success -> mMainHandler.post(() -> {
+                    if (success) {
+                        onClickClear();
+                    }
+                    updateStatusUI(false);
+                }));
             } else {
                 mMainHandler.post(() -> updateStatusUI(false));
             }
@@ -628,8 +678,8 @@ public class NeopixelFragment extends ConnectedPeripheralFragment implements Neo
             Log.d(TAG, "setup success: " + success);
             if (success) {
                 mBoard = device;
-                mComponents = components;
-                mIs400HzEnabled = is400HzEnabled;
+                setAndSaveComponents(components);
+                setIs400khzEnabled(is400HzEnabled);
             }
             if (successHandler != null) {
                 successHandler.result(success);
@@ -637,7 +687,7 @@ public class NeopixelFragment extends ConnectedPeripheralFragment implements Neo
         });
     }
 
-    void resetBoard() {
+    private void resetBoard() {
         mBoard = null;
     }
 
@@ -809,6 +859,14 @@ public class NeopixelFragment extends ConnectedPeripheralFragment implements Neo
     public void onBoardIndexSelected(int index) {
         Context context = getContext();
         if (context != null) {
+            // Save selected board
+            final SharedPreferences preferences = context.getSharedPreferences(kPreferences, Context.MODE_PRIVATE);
+            SharedPreferences.Editor editor = preferences.edit();
+            editor.putBoolean(kPreferences_isUsingStandardBoards, true);
+            editor.putInt(kPreferences_standardBoardIndex, index);
+            editor.apply();
+
+            // Change board
             Board board = new Board(context, index);
             changeBoard(board);
         }
@@ -818,9 +876,21 @@ public class NeopixelFragment extends ConnectedPeripheralFragment implements Neo
     public void onLineStripSelected(int stripLength) {
         Context context = getContext();
         if (context != null) {
-            Board board = new Board("1x" + stripLength, (byte) stripLength, (byte) 1, (byte) stripLength);
+            // Save selected board
+            final SharedPreferences preferences = context.getSharedPreferences(kPreferences, Context.MODE_PRIVATE);
+            SharedPreferences.Editor editor = preferences.edit();
+            editor.putBoolean(kPreferences_isUsingStandardBoards, false);
+            editor.putInt(kPreferences_lineBoardLength, stripLength);
+            editor.apply();
+
+            // Change board
+            Board board = createLineBoard(stripLength);
             changeBoard(board);
         }
+    }
+
+    private Board createLineBoard(int stripLength) {
+        return new Board("1x" + stripLength, (byte) stripLength, (byte) 1, (byte) stripLength);
     }
     // endregion
 
